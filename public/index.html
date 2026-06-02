@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>프로젝트 런처</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="/vendor/xterm/css/xterm.css" />
+</head>
+<body>
+  <header>
+    <h1 data-i18n="appTitle">프로젝트 런처</h1>
+    <div class="header-actions">
+      <div class="lang-switch" id="lang-switch">
+        <button type="button" data-lang="ko">한국어</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ja">日本語</button>
+      </div>
+      <button id="help-btn" type="button" class="ghost"><span aria-hidden="true">❓</span> <span data-i18n="help">도움말</span></button>
+      <button id="new-project" type="button" data-i18n="newProject">+ 새 프로젝트</button>
+      <button id="refresh" type="button" data-i18n="refresh">새로고침</button>
+      <button id="shutdown" type="button" class="danger" data-i18n="shutdown">서버 종료</button>
+    </div>
+  </header>
+  <div id="banner" class="banner hidden"></div>
+  <main id="grid" class="grid"></main>
+
+  <section id="console-drawer" class="console-drawer">
+    <div class="console-bar">
+      <span class="console-title" id="console-title"></span>
+      <button id="console-collapse" type="button" class="console-collapse" data-i18n-title="collapseTitle" title="접기/펼치기">▾</button>
+    </div>
+    <div id="console-pane" class="console-pane"></div>
+  </section>
+
+  <div id="help-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="help-dialog">
+      <div class="help-head">
+        <h2 id="help-title"></h2>
+        <button id="help-close" class="help-close" type="button">✕</button>
+      </div>
+      <ul id="help-list" class="help-list"></ul>
+      <a id="help-guide" class="help-guide" href="#" target="_blank" rel="noopener"></a>
+    </div>
+  </div>
+
+  <!-- xterm UMD: 전역 Terminal, FitAddon 노출 (app/console 모듈보다 먼저 로드) -->
+  <script src="/vendor/xterm/lib/xterm.js"></script>
+  <script src="/vendor/addon-fit/lib/addon-fit.js"></script>
+  <script src="./console.js" type="module"></script>
+  <script src="./app.js" type="module"></script>
+  <script src="./help.js" type="module"></script>
+</body>
+</html>

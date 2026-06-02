@@ -1,0 +1,224 @@
+// public/i18n.js
+// 대시보드 다국어(ko/en/ja). 순수 부분(translate/DICT)은 node:test 로 단위 테스트.
+// 브라우저는 ESM import 로, 언어 전환 시 window 'i18n:change' 이벤트를 발화한다.
+
+export const LANGS = ['ko', 'en', 'ja'];
+const LS_KEY = 'launcher.lang';
+
+// 키 → 문자열. 동적 문자열은 함수형 값(인자로 포맷).
+export const DICT = {
+  ko: {
+    appTitle: 'Claude WSL Launcher V2',
+    newProject: '+ 새 프로젝트',
+    refresh: '새로고침',
+    shutdown: '서버 종료',
+    consoleTitle: '서버 콘솔',
+    collapseTitle: '접기/펼치기',
+    running: '● 실행 중',
+    hasSession: '대화 이력 있음',
+    newSession: '새 세션',
+    launchContinue: 'claude 이어서 실행',
+    launchNew: 'claude 새로 실행',
+    checkRemote: '원격 확인',
+    notGit: 'git 아님',
+    dirty: '변경 있음',
+    clean: '깨끗',
+    noCommit: '커밋 없음',
+    justNow: '방금',
+    minAgo: (n) => `${n}분 전`,
+    hourAgo: (n) => `${n}시간 전`,
+    dayAgo: (n) => `${n}일 전`,
+    behind: (n) => `↓ ${n}개 뒤짐`,
+    ahead: (n) => `↑ ${n}개 앞섬`,
+    pull: '받기',
+    upToDate: '최신 ✓',
+    launchToast: '✓ 창을 열었어요',
+    launchFail: (x) => `실행 실패: ${x}`,
+    launchReqFail: '실행 요청 실패 — 서버 연결을 확인하세요.',
+    fetchFail: (x) => `원격 확인 실패: ${x}`,
+    fetchReqFail: '원격 확인 요청 실패 — 서버 연결을 확인하세요.',
+    pullConfirm: (name) => `${name} 을(를) 받을까요? (fast-forward만)`,
+    pullFail: (x) => `받기 실패: ${x}`,
+    pullReqFail: '받기 요청 실패 — 서버 연결을 확인하세요.',
+    createPrompt: '새 프로젝트 폴더 이름:',
+    createFail: (x) => `생성 실패: ${x}`,
+    createReqFail: '생성 요청 실패 — 서버 연결을 확인하세요.',
+    shutdownConfirm: '서버를 종료할까요? 열린 터미널도 모두 닫힙니다.',
+    shutdownDone: '서버를 종료했습니다. 이 창은 닫아도 됩니다.',
+    projectsError: (x) => `프로젝트 목록 오류: ${x}`,
+    connectFail: '서버에 연결할 수 없습니다. (npm start 로 서버가 떠 있는지 확인)',
+    noProjects: '~/projects 아래에 프로젝트 폴더가 없습니다.',
+    consoleDisconnected: '[서버 연결 끊김 — 종료되었거나 재시작이 필요합니다]',
+    serverError: '서버 오류',
+    unknownError: '알 수 없는 오류',
+    mergeNeeded: '수동 병합이 필요할 수 있습니다',
+    help: '도움말',
+    helpTitle: '사용법',
+    helpClose: '닫기',
+    helpFullGuide: '전체 가이드(설치 포함) → GitHub',
+    helpLaunch: '[claude 실행] — 카드 폴더에서 새 WSL 창에 claude (대화 이력 있으면 이어서)',
+    helpRemote: '[원격 확인]/받기 — git fetch 후 뒤처졌으면 git pull --ff-only',
+    helpNewProject: '[+ 새 프로젝트] — ~/projects 아래 폴더 생성 + git init',
+    helpConsole: '하단 콘솔 — 서버 로그(읽기 전용). 서버가 켜져 있음을 보여줌',
+    helpShutdown: '[서버 종료] — 로컬 대시보드 서버를 끔',
+    helpLang: '한국어 | EN | 日本語 — 화면 언어 전환',
+  },
+  en: {
+    appTitle: 'Claude WSL Launcher V2',
+    newProject: '+ New Project',
+    refresh: 'Refresh',
+    shutdown: 'Shut Down',
+    consoleTitle: 'Server Console',
+    collapseTitle: 'Collapse/Expand',
+    running: '● Running',
+    hasSession: 'Has history',
+    newSession: 'New session',
+    launchContinue: 'Continue claude',
+    launchNew: 'Start claude',
+    checkRemote: 'Check remote',
+    notGit: 'not git',
+    dirty: 'modified',
+    clean: 'clean',
+    noCommit: 'no commits',
+    justNow: 'just now',
+    minAgo: (n) => `${n} min ago`,
+    hourAgo: (n) => `${n} h ago`,
+    dayAgo: (n) => `${n} d ago`,
+    behind: (n) => `↓ ${n} behind`,
+    ahead: (n) => `↑ ${n} ahead`,
+    pull: 'Pull',
+    upToDate: 'up to date ✓',
+    launchToast: '✓ Opened a window',
+    launchFail: (x) => `Launch failed: ${x}`,
+    launchReqFail: 'Launch request failed — check the server connection.',
+    fetchFail: (x) => `Remote check failed: ${x}`,
+    fetchReqFail: 'Remote check request failed — check the server connection.',
+    pullConfirm: (name) => `Pull ${name}? (fast-forward only)`,
+    pullFail: (x) => `Pull failed: ${x}`,
+    pullReqFail: 'Pull request failed — check the server connection.',
+    createPrompt: 'New project folder name:',
+    createFail: (x) => `Create failed: ${x}`,
+    createReqFail: 'Create request failed — check the server connection.',
+    shutdownConfirm: 'Shut down the server? All open terminals will close too.',
+    shutdownDone: 'Server shut down. You can close this window.',
+    projectsError: (x) => `Project list error: ${x}`,
+    connectFail: 'Cannot connect to the server. (check it is running via npm start)',
+    noProjects: 'No project folders under ~/projects.',
+    consoleDisconnected: '[Server disconnected — it was shut down or needs a restart]',
+    serverError: 'Server error',
+    unknownError: 'Unknown error',
+    mergeNeeded: 'a manual merge may be needed',
+    help: 'Help',
+    helpTitle: 'How to use',
+    helpClose: 'Close',
+    helpFullGuide: 'Full guide (incl. setup) → GitHub',
+    helpLaunch: '[Launch claude] — opens claude in a new WSL window from that folder (continues if history exists)',
+    helpRemote: '[Check remote]/Pull — git fetch, then git pull --ff-only if behind',
+    helpNewProject: '[+ New Project] — creates a folder under ~/projects + git init',
+    helpConsole: 'Bottom console — server logs (read-only). Shows the server is running',
+    helpShutdown: '[Shut Down] — stops the local dashboard server',
+    helpLang: '한국어 | EN | 日本語 — switch the display language',
+  },
+  ja: {
+    appTitle: 'Claude WSL Launcher V2',
+    newProject: '+ 新規プロジェクト',
+    refresh: '更新',
+    shutdown: 'サーバー停止',
+    consoleTitle: 'サーバーコンソール',
+    collapseTitle: '折りたたみ/展開',
+    running: '● 実行中',
+    hasSession: '会話履歴あり',
+    newSession: '新規セッション',
+    launchContinue: 'claude を再開',
+    launchNew: 'claude を起動',
+    checkRemote: 'リモート確認',
+    notGit: 'git なし',
+    dirty: '変更あり',
+    clean: 'クリーン',
+    noCommit: 'コミットなし',
+    justNow: 'たった今',
+    minAgo: (n) => `${n}分前`,
+    hourAgo: (n) => `${n}時間前`,
+    dayAgo: (n) => `${n}日前`,
+    behind: (n) => `↓ ${n}件 遅れ`,
+    ahead: (n) => `↑ ${n}件 先行`,
+    pull: '取得',
+    upToDate: '最新 ✓',
+    launchToast: '✓ ウィンドウを開きました',
+    launchFail: (x) => `起動失敗: ${x}`,
+    launchReqFail: '起動リクエスト失敗 — サーバー接続を確認してください。',
+    fetchFail: (x) => `リモート確認失敗: ${x}`,
+    fetchReqFail: 'リモート確認リクエスト失敗 — サーバー接続を確認してください。',
+    pullConfirm: (name) => `${name} を取得しますか？（fast-forward のみ）`,
+    pullFail: (x) => `取得失敗: ${x}`,
+    pullReqFail: '取得リクエスト失敗 — サーバー接続を確認してください。',
+    createPrompt: '新規プロジェクトのフォルダ名:',
+    createFail: (x) => `作成失敗: ${x}`,
+    createReqFail: '作成リクエスト失敗 — サーバー接続を確認してください。',
+    shutdownConfirm: 'サーバーを停止しますか？開いているターミナルもすべて閉じます。',
+    shutdownDone: 'サーバーを停止しました。このウィンドウは閉じても構いません。',
+    projectsError: (x) => `プロジェクト一覧エラー: ${x}`,
+    connectFail: 'サーバーに接続できません。（npm start で起動しているか確認）',
+    noProjects: '~/projects の下にプロジェクトフォルダがありません。',
+    consoleDisconnected: '[サーバー接続が切断されました — 停止したか再起動が必要です]',
+    serverError: 'サーバーエラー',
+    unknownError: '不明なエラー',
+    mergeNeeded: '手動マージが必要かもしれません',
+    help: 'ヘルプ',
+    helpTitle: '使い方',
+    helpClose: '閉じる',
+    helpFullGuide: '詳細ガイド（インストール含む） → GitHub',
+    helpLaunch: '[claude 起動] — そのフォルダーから新しい WSL ウィンドウで claude（履歴があれば再開）',
+    helpRemote: '[リモート確認]/取得 — git fetch 後、遅れていれば git pull --ff-only',
+    helpNewProject: '[+ 新規プロジェクト] — ~/projects 配下にフォルダー作成 + git init',
+    helpConsole: '下部コンソール — サーバーログ（読み取り専用）。サーバーが稼働中であることを表示',
+    helpShutdown: '[サーバー停止] — ローカルのダッシュボードサーバーを停止',
+    helpLang: '한국어 | EN | 日本語 — 表示言語を切り替え',
+  },
+};
+
+let current = null; // 메모리 캐시(localStorage 없는 환경/테스트 대비)
+
+/** 저장된 언어. 없거나 무효면 ko. */
+export function getLang() {
+  if (current && LANGS.includes(current)) return current;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const v = localStorage.getItem(LS_KEY);
+      if (LANGS.includes(v)) { current = v; return v; }
+    }
+  } catch { /* 접근 불가 무시 */ }
+  return 'ko';
+}
+
+/** 언어 설정 + 저장 + (브라우저면) 'i18n:change' 발화. */
+export function setLang(lang) {
+  if (!LANGS.includes(lang)) return;
+  current = lang;
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(LS_KEY, lang);
+  } catch { /* 무시 */ }
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('i18n:change', { detail: lang }));
+  }
+}
+
+/** 순수 번역: 언어를 명시. 함수형 값이면 args 로 호출. 미존재 키는 ko 폴백 후 키 자체. */
+export function translate(lang, key, ...args) {
+  const dict = DICT[lang] || DICT.ko;
+  let v;
+  if (key in dict) v = dict[key];
+  else if (key in DICT.ko) v = DICT.ko[key];
+  else return key;
+  return typeof v === 'function' ? v(...args) : v;
+}
+
+/** 현재 언어 기준 번역. */
+export function t(key, ...args) {
+  return translate(getLang(), key, ...args);
+}
+
+// 브라우저 전역 노출(모듈 import 안 하는 코드 대비, 선택적).
+if (typeof window !== 'undefined') {
+  window.i18n = { t, translate, getLang, setLang, LANGS, DICT };
+}

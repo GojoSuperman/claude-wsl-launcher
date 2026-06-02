@@ -1,0 +1,29 @@
+# bkit 런타임 상태 (PC별로 바뀜 — 동기화 제외)
+.bkit/
+
+# 내부 설계 산출물 (브레인스토밍 spec/plan — 공개 repo 에 노출 안 함)
+docs/superpowers/
+
+# 의존성
+node_modules/
+
+# 시크릿 / 토큰 (절대 커밋 금지)
+.env
+.env.local
+.env.*.local
+.claude/settings.local.json
+.claude/.credentials.json
+*.pem
+*.key
+id_rsa*
+*.p12
+*.pfx
+.mcp.json
+
+# 로그 / 임시
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

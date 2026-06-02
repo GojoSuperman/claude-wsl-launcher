@@ -1,0 +1,17 @@
+{
+  "name": "claude-wsl-launcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude WSL Launcher — a local dashboard to launch Claude Code in WSL",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "express": "^4.19.2",
+    "ws": "^8.21.0"
+  }
+}
