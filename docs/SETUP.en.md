@@ -40,6 +40,8 @@ wsl --version
 
 From this point on, open a **WSL (Ubuntu) terminal**. (Search for "Ubuntu" in the Start menu.)
 
+> 💡 **What is the "WSL (Ubuntu) terminal"?** It's the black window that opens when you search **"Ubuntu"** in the Start menu and click it (a terminal running Ubuntu Linux). You're in the right place when the prompt looks like `name@computer:~$`. It's a different window from PowerShell (`PS C:\>`) or Command Prompt. Typing `wsl` in PowerShell drops you into the same Ubuntu, but it may start in `/mnt/c/...` (a Windows folder), so run `cd ~` to move to your Linux home.
+
 ---
 
 ## 2. Understand your WSL environment
