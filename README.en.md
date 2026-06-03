@@ -31,6 +31,8 @@ The distro name, home directory, username, and desktop path are **detected at ru
 
 ## Quick Start
 
+> ⚠️ **Run every command (clone, install, shortcut) inside a WSL (Ubuntu) terminal** — not Windows PowerShell or Command Prompt. Cloning from PowerShell saves the `.sh` files with Windows line endings (CRLF), which makes the shortcut installer fail with `set: pipefail: invalid option name`.
+
 ```bash
 # In a WSL terminal (keep the tool outside the scanned folder — e.g. home)
 cd ~

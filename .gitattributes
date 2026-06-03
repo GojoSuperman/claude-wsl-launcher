@@ -1,0 +1,14 @@
+# 줄바꿈 정규화 — Windows 에서 클론해도 셸 스크립트가 깨지지 않게.
+# (Windows git 의 core.autocrlf=true 가 .sh 를 CRLF 로 바꾸면 WSL bash 가
+#  "set: pipefail: invalid option name" 으로 죽는 문제 방지)
+
+# 기본: git 이 텍스트/바이너리 자동 판별, 텍스트는 저장소에 LF 로 보관
+* text=auto eol=lf
+
+# 셸 스크립트는 어떤 OS 에서 체크아웃하든 무조건 LF (WSL bash 가 실행)
+*.sh text eol=lf
+
+# 바이너리 자산은 변환 금지
+*.png binary
+*.ico binary
+*.lnk binary

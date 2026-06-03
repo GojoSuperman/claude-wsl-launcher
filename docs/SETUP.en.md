@@ -89,6 +89,8 @@ claude --version   # If a version is shown, you're good
 
 ## 5. Clone this tool
 
+> ⚠️ **Clone from inside a WSL (Ubuntu) terminal.** If you clone from Windows PowerShell or Explorer, git saves the `.sh` files with Windows line endings (CRLF), and the shortcut installer (step 7) later fails with `set: pipefail: invalid option name`.
+
 ```bash
 cd ~                 # keep the tool outside the scanned folder (home — not inside ~/projects)
 git clone https://github.com/GojoSuperman/claude-wsl-launcher.git
@@ -99,6 +101,8 @@ mkdir -p ~/projects  # the default folder to scan (only if it doesn't exist)
 > `~/projects` is the default folder this tool scans (**separate from where the tool itself lives**). Any project folders you place there appear as cards. To scan a different folder, see `PROJECTS_ROOT` in step 6.
 
 ---
+
+> 💡 **Setup check (recommended):** After cloning, run `bash scripts/doctor.sh` to automatically check WSL/Node/claude/line-endings/dependencies and print the exact command to fix anything that's off. It verifies **whether claude is installed in this PC's WSL (nvm)** the same way the shortcut launcher resolves it — handy to run first **when you've pulled the repo on another PC**. To have it **fix things automatically**, run `bash scripts/doctor.sh --fix` — it asks "Install? [Y/N]" per missing item and only fixes what you approve.
 
 ## 6. Install dependencies and run
 
@@ -157,9 +161,10 @@ A shortcut appears on your desktop. When you double-click it:
 |---|---|
 | Browser shows "Unable to connect" | The server isn't running or has stopped. Run `npm start` again in a terminal, or double-click the shortcut again. |
 | Clicking "Run claude" opens no window, or shows "spawn powershell.exe ENOENT" | Almost always a PATH issue. The tool has an automatic fallback, but if that doesn't work, try starting the server from a WSL terminal with `npm start` (login shell). |
-| `claude: command not found` in the new window | Claude is not installed in WSL, or it's missing from PATH. Check Step 4. (The tool uses `bash -lic` to source the nvm PATH.) |
+| `claude: command not found` in the new window | Claude is not installed in WSL. The launcher (`scripts/launch-claude.sh`) sources nvm directly to find claude, so install it in your **default nvm Node** (Step 4): `npm install -g @anthropic-ai/claude-code`. The code syncs via git, but the claude install is PC-local, so it's needed **once per PC**. |
 | Port already in use (EADDRINUSE) | The server is already running. Shut down the existing instance with **[서버 종료]** (Shut down server), or use `PORT=5000 npm start`. |
 | Shortcut does the old behavior or doesn't work | Re-run `bash scripts/install-shortcut.sh` to regenerate the shortcut. |
+| `set: pipefail: invalid option name` / `invalid option name` (text looks garbled/overlapping) | The `.sh` files have Windows line endings (CRLF). Fix it **inside WSL** with `sed -i 's/\r$//' scripts/*.sh`, or re-clone from a WSL terminal (step 5). |
 
 ---
 

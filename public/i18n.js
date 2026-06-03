@@ -8,7 +8,7 @@ const LS_KEY = 'launcher.lang';
 // 키 → 문자열. 동적 문자열은 함수형 값(인자로 포맷).
 export const DICT = {
   ko: {
-    appTitle: 'Claude WSL Launcher V2',
+    appTitle: '프로젝트 런처',
     newProject: '+ 새 프로젝트',
     refresh: '새로고침',
     shutdown: '서버 종료',
@@ -64,7 +64,7 @@ export const DICT = {
     helpLang: '한국어 | EN | 日本語 — 화면 언어 전환',
   },
   en: {
-    appTitle: 'Claude WSL Launcher V2',
+    appTitle: 'Project Launcher',
     newProject: '+ New Project',
     refresh: 'Refresh',
     shutdown: 'Shut Down',
@@ -120,7 +120,7 @@ export const DICT = {
     helpLang: '한국어 | EN | 日本語 — switch the display language',
   },
   ja: {
-    appTitle: 'Claude WSL Launcher V2',
+    appTitle: 'プロジェクトランチャー',
     newProject: '+ 新規プロジェクト',
     refresh: '更新',
     shutdown: 'サーバー停止',

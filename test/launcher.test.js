@@ -32,14 +32,19 @@ test('기본 형태: Start-Process wsl.exe -ArgumentList 로 시작', () => {
   assert.ok(s.startsWith("Start-Process wsl.exe -ArgumentList "));
 });
 
-test('cont=true 면 --continue 포함', () => {
-  const s = buildPsScript('Ubuntu-24.04', '/home/g/projects/todo', true);
-  assert.ok(s.includes('claude --continue; exec bash -i'));
+test('런처 스크립트(launch-claude.sh)를 bash 로 호출', () => {
+  const s = buildPsScript('Ubuntu-24.04', '/home/g/projects/todo', false, '/x/scripts/launch-claude.sh');
+  assert.ok(s.includes("'bash','/x/scripts/launch-claude.sh'"));
+});
+
+test('cont=true 면 --continue 인자 포함', () => {
+  const s = buildPsScript('Ubuntu-24.04', '/home/g/projects/todo', true, '/x/scripts/launch-claude.sh');
+  assert.ok(s.includes("'bash','/x/scripts/launch-claude.sh','--continue'"));
 });
 
 test('cont=false 면 --continue 없음', () => {
-  const s = buildPsScript('Ubuntu-24.04', '/home/g/projects/new', false);
-  assert.ok(s.includes("'claude; exec bash -i'"));
+  const s = buildPsScript('Ubuntu-24.04', '/home/g/projects/new', false, '/x/scripts/launch-claude.sh');
+  assert.ok(s.includes("'bash','/x/scripts/launch-claude.sh'"));
   assert.ok(!s.includes('--continue'));
 });
 

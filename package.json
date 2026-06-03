@@ -1,9 +1,9 @@
 {
-  "name": "claude-wsl-launcher",
+  "name": "desktop-shortcuts-dashboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Claude WSL Launcher — a local dashboard to launch Claude Code in WSL",
+  "description": "WSL 프로젝트 런처 대시보드 (MVP)",
   "scripts": {
     "start": "node server/index.js",
     "test": "node --test"

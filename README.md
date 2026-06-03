@@ -32,6 +32,8 @@ distro 이름·홈·사용자·바탕화면 경로는 **런타임 감지**하므
 
 ## 빠른 시작
 
+> ⚠️ **모든 명령(클론·설치·단축키)을 WSL(우분투) 터미널 안에서** 실행하세요 — Windows PowerShell·명령 프롬프트가 아닙니다. PowerShell 에서 클론하면 `.sh` 파일이 Windows 줄바꿈(CRLF)으로 저장돼, 단축키 설치가 `set: pipefail: invalid option name` 으로 실패합니다.
+
 ```bash
 # WSL 터미널에서 (도구는 스캔 폴더 밖에 — 예: 홈)
 cd ~

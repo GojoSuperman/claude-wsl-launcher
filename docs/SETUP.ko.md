@@ -89,6 +89,8 @@ claude --version   # 버전이 나오면 OK
 
 ## 5. 이 도구 받기
 
+> ⚠️ **반드시 WSL(우분투) 터미널 안에서 클론하세요.** Windows PowerShell·탐색기에서 클론하면 git 이 `.sh` 파일을 Windows 줄바꿈(CRLF)으로 저장해, 나중에 단축키 설치(7번)가 `set: pipefail: invalid option name` 으로 실패합니다.
+
 ```bash
 cd ~                 # 도구는 스캔 폴더 밖에 (홈 등 — ~/projects 안에 두지 않기)
 git clone https://github.com/GojoSuperman/claude-wsl-launcher.git
@@ -99,6 +101,8 @@ mkdir -p ~/projects  # 스캔할 기본 폴더 (없을 때만)
 > 이 도구는 기본적으로 `~/projects` 를 스캔합니다(**도구를 둔 위치와는 별개**). 작업 프로젝트들을 그 아래 두면 카드로 보입니다. 다른 폴더를 쓰려면 6번의 `PROJECTS_ROOT` 참고.
 
 ---
+
+> 💡 **셋업 점검 (권장):** 클론 후 `bash scripts/doctor.sh` 를 실행하면 WSL/Node/claude/줄바꿈/의존성을 자동 점검하고, 고쳐야 할 게 있으면 정확한 명령을 알려줍니다. 특히 **claude 가 그 PC 의 WSL(nvm)에 설치돼 있는지**를 단축키 런처와 동일한 방식으로 확인하므로, **다른 PC 에서 받았을 때** 먼저 돌려보면 좋습니다. 진단만 하지 않고 **자동으로 고치게 하려면** `bash scripts/doctor.sh --fix` — 빠진 항목마다 "설치할까요? [Y/N]" 으로 물어보고, 동의한 것만 고칩니다.
 
 ## 6. 설치하고 실행
 
@@ -157,9 +161,10 @@ PROJECTS_ROOT=~/dev bash scripts/install-shortcut.sh   # 더블클릭하면 ~/de
 |---|---|
 | 브라우저 "연결할 수 없음" | 서버가 안 떴거나 종료됨. 터미널에서 `npm start` 재실행, 또는 단축키 다시 더블클릭. |
 | `claude 실행`을 눌러도 창이 안 뜨거나 "spawn powershell.exe ENOENT" | 거의 PATH 문제. 이 도구는 자동 폴백하지만, 안 되면 WSL 터미널에서 `npm start`로(로그인 셸) 서버를 띄워 보세요. |
-| 새 창에서 `claude: command not found` | WSL에 claude가 설치 안 됨/PATH 누락. 4번 단계 확인. (`bash -lic`로 nvm PATH를 잡습니다) |
+| 새 창에서 `claude: command not found` | WSL에 claude가 설치 안 됨. 런처(`scripts/launch-claude.sh`)는 nvm을 직접 소싱해 claude를 찾으므로 **nvm 기본 노드에 설치**해야 합니다(4번): `npm install -g @anthropic-ai/claude-code`. 코드는 git으로 동기화되지만 claude 설치는 PC 로컬이라 **PC마다 한 번씩** 필요합니다. |
 | 포트 사용 중(EADDRINUSE) | 이미 서버가 떠 있음. 기존 것을 [서버 종료]하거나 `PORT=5000 npm start`. |
 | 단축키가 옛 동작/안 됨 | `bash scripts/install-shortcut.sh` 다시 실행해 단축키 재생성. |
+| `set: pipefail: invalid option name` / `invalid option name` (글자가 겹쳐 깨져 보임) | `.sh` 가 Windows 줄바꿈(CRLF)이라 발생. **WSL 안에서** `sed -i 's/\r$//' scripts/*.sh` 로 고치거나, WSL 터미널에서 다시 클론하세요(5번). |
 
 ---
 

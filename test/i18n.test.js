@@ -8,9 +8,9 @@ test('LANGS: ko/en/ja 세 언어', () => {
 });
 
 test('translate: 정적 문자열이 언어별로 정확', () => {
-  assert.equal(translate('ko', 'appTitle'), 'Claude WSL Launcher V2');
-  assert.equal(translate('en', 'appTitle'), 'Claude WSL Launcher V2');
-  assert.equal(translate('ja', 'appTitle'), 'Claude WSL Launcher V2');
+  assert.equal(translate('ko', 'appTitle'), '프로젝트 런처');
+  assert.equal(translate('en', 'appTitle'), 'Project Launcher');
+  assert.equal(translate('ja', 'appTitle'), 'プロジェクトランチャー');
 });
 
 test('translate: 함수형(동적) 엔트리가 인자로 포맷', () => {
@@ -26,7 +26,7 @@ test('translate: 미존재 키는 키 문자열 그대로 폴백', () => {
 });
 
 test('translate: 알 수 없는 언어는 ko 로 폴백', () => {
-  assert.equal(translate('zz', 'appTitle'), 'Claude WSL Launcher V2');
+  assert.equal(translate('zz', 'appTitle'), '프로젝트 런처');
 });
 
 test('사전 키 정합성: en·ja 가 ko 와 동일한 키 집합', () => {

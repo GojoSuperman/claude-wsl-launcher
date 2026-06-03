@@ -32,6 +32,8 @@ WSL の中で動く小さなローカルダッシュボードです。`~/project
 
 ## クイックスタート
 
+> ⚠️ **すべてのコマンド（クローン・インストール・ショートカット）を WSL（Ubuntu）ターミナル内で**実行してください — Windows PowerShell やコマンドプロンプトではありません。PowerShell からクローンすると `.sh` ファイルが Windows の改行コード（CRLF）で保存され、ショートカット作成が `set: pipefail: invalid option name` で失敗します。
+
 ```bash
 # WSL ターミナルで（ツールはスキャン対象フォルダーの外に — 例: ホーム）
 cd ~

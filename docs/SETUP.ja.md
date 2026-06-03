@@ -89,6 +89,8 @@ claude --version   # バージョンが表示されれば OK
 
 ## 5. このツールを取得する
 
+> ⚠️ **必ず WSL（Ubuntu）ターミナル内でクローンしてください。** Windows PowerShell やエクスプローラーからクローンすると、git が `.sh` ファイルを Windows の改行コード（CRLF）で保存し、後のショートカット作成（7番）が `set: pipefail: invalid option name` で失敗します。
+
 ```bash
 cd ~                 # ツールはスキャン対象フォルダーの外に（ホームなど — ~/projects の中に置かない）
 git clone https://github.com/GojoSuperman/claude-wsl-launcher.git
@@ -99,6 +101,8 @@ mkdir -p ~/projects  # スキャンする既定フォルダー（無い場合の
 > `~/projects` がこのツールのスキャン対象となる既定フォルダーです（**ツールの設置場所とは別**）。作業中のプロジェクトをそこに置くとカードとして表示されます。別のフォルダーを使うには手順 6 の `PROJECTS_ROOT` を参照。
 
 ---
+
+> 💡 **セットアップ点検（推奨）：** クローン後に `bash scripts/doctor.sh` を実行すると、WSL/Node/claude/改行コード/依存関係を自動点検し、直すべき項目があれば正確なコマンドを教えてくれます。**claude がその PC の WSL（nvm）にインストールされているか**をショートカットのランチャーと同じ方法で確認するので、**別の PC で取得したとき**に最初に実行すると便利です。 診断だけでなく**自動で修正させるには** `bash scripts/doctor.sh --fix` — 不足項目ごとに「インストールしますか？ [Y/N]」と尋ね、同意したものだけ修正します。
 
 ## 6. インストールして起動する
 
@@ -157,9 +161,10 @@ PROJECTS_ROOT=~/dev bash scripts/install-shortcut.sh   # ダブルクリック�
 |---|---|
 | ブラウザで「接続できない」 | サーバーが起動していないか終了しています。ターミナルで `npm start` を再実行するか、ショートカットをダブルクリックし直してください。 |
 | `claude 실행` を押してもウィンドウが開かない、または "spawn powershell.exe ENOENT" | ほぼ PATH の問題です。このツールは自動フォールバックを試みますが、それでも駄目な場合は WSL ターミナルから `npm start`（ログインシェル）でサーバーを起動してみてください。 |
-| 新しいウィンドウで `claude: command not found` | WSL に claude がインストールされていないか、PATH が通っていません。手順 4 を確認してください。（`bash -lic` で nvm の PATH を読み込みます） |
+| 新しいウィンドウで `claude: command not found` | WSL に claude がインストールされていません。ランチャー（`scripts/launch-claude.sh`）は nvm を直接読み込んで claude を探すため、**既定の nvm Node** にインストールしてください（手順 4）：`npm install -g @anthropic-ai/claude-code`。コードは git で同期されますが claude のインストールは PC ローカルなので、**PC ごとに一度** 必要です。 |
 | ポートが使用中（EADDRINUSE） | すでにサーバーが起動しています。既存のサーバーを [서버 종료]（サーバー終了）するか、`PORT=5000 npm start` を使用してください。 |
 | ショートカットが古い動作をする／動かない | `bash scripts/install-shortcut.sh` を再実行してショートカットを再作成してください。 |
+| `set: pipefail: invalid option name` / `invalid option name`（文字が重なって崩れて見える） | `.sh` が Windows の改行コード（CRLF）になっています。**WSL 内で** `sed -i 's/\r$//' scripts/*.sh` で修正するか、WSL ターミナルから再クローンしてください（5番）。 |
 
 ---
 
