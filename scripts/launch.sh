@@ -29,16 +29,27 @@ open_browser() {
 # PORT..PORT_END 중 "우리 대시보드"(health 마커)가 떠 있는 첫 포트를 echo. (curl 무의존 — /dev/tcp)
 # 남이 점유한 포트는 마커 불일치로 건너뛴다 → 엉뚱한 앱을 열지 않는다.
 ours_port() {
-  local p resp
+  local p tmp pids=""
+  tmp="$(mktemp -d)"
+  # 포트 10개를 병렬로 탐색한다. 각 탐색은 connect+요청+응답을 통째로 timeout 으로 감싼다.
+  # WSL mirrored 네트워킹(.wslconfig networkingMode=mirrored)에서는 아무도 안 듣는 루프백 포트에
+  # connect 해도 거부(RST)가 오지 않고 SYN-SENT 로 ~2분 멈추는 경우가 있다(2026-09-04 노트북 실측).
+  # 타임아웃 없이는 단축키가 서버를 띄우기도 전에 여기서 멎어 "실행이 안 되는" 것처럼 보이고,
+  # 순차 탐색이면 회전마다 포트 수 × 타임아웃만큼 기다리게 되므로 병렬로 돌린다.
   for p in $(seq "$PORT" "$PORT_END"); do
-    exec 3<>"/dev/tcp/127.0.0.1/$p" 2>/dev/null || continue
-    printf 'GET /api/health HTTP/1.0\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n' >&3
-    resp="$(timeout 1 cat <&3 2>/dev/null)"
-    exec 3<&- 3>&- 2>/dev/null || true
-    if printf '%s' "$resp" | grep -q '"app":"claude-wsl-launcher"'; then
-      echo "$p"; return 0
+    timeout 1 bash -c '
+      exec 3<>"/dev/tcp/127.0.0.1/$1" || exit 1
+      printf "GET /api/health HTTP/1.0\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" >&3
+      cat <&3' _ "$p" >"$tmp/$p" 2>/dev/null &
+    pids="$pids $!"
+  done
+  wait $pids 2>/dev/null
+  for p in $(seq "$PORT" "$PORT_END"); do
+    if grep -q '"app":"claude-wsl-launcher"' "$tmp/$p" 2>/dev/null; then
+      rm -rf "$tmp"; echo "$p"; return 0
     fi
   done
+  rm -rf "$tmp"
   return 1
 }
 
