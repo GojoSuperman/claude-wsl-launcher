@@ -59,3 +59,17 @@ export async function aheadBehind(dir) {
     behind: Number.isFinite(behind) ? behind : 0,
   };
 }
+
+/** origin URL → 'owner/repo' (GitHub 만). 순수. 비GitHub/빈값 → null. */
+export function parseOriginRepo(url) {
+  const s = (url || '').toString().trim();
+  if (!s) return null;
+  const m = s.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  return m ? `${m[1]}/${m[2]}` : null;
+}
+
+/** origin 원격이 github 면 'owner/repo', 아니면 null. 절대 throw 안 함. */
+export async function originRepo(dir) {
+  const url = await git(dir, ['remote', 'get-url', 'origin']);
+  return parseOriginRepo(url);
+}

@@ -9,7 +9,8 @@ import { list } from './scanner.js';
 import { hasSession } from './session.js';
 import { resolveProject } from './paths.js';
 import { launch } from './launcher.js';
-import { status as gitStatus, aheadBehind } from './git.js';
+import { status as gitStatus, aheadBehind, originRepo } from './git.js';
+import { createVisibilityLookup } from './github-visibility.js';
 import { fetch as gitFetch, pull as gitPull } from './git-sync.js';
 import { runningPaths, isRunning } from './running.js';
 import { create as createProject } from './creator.js';
@@ -60,6 +61,7 @@ app.get('/api/projects', async (req, res) => {
         git: await gitStatus(p.path),
         running: isRunning(runSet, p.path),
         self: isSelf(p.path),
+        github: await originRepo(p.path), // origin 이 GitHub 면 'owner/repo', 아니면 null
       }))
     );
     res.json({ projects });
@@ -102,6 +104,29 @@ app.post('/api/git/pull', async (req, res) => {
     if (!full) return res.status(400).json({ ok: false, error: 'unknown project' });
     const r = await gitPull(full);
     res.json(r);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// GitHub 공개/비공개 조회 (gh CLI, 캐시). names 배열 → { name: 'PUBLIC'|'PRIVATE'|null }
+const visibility = createVisibilityLookup();
+app.post('/api/github/visibility', async (req, res) => {
+  try {
+    const names = Array.isArray(req.body?.names) ? req.body.names.slice(0, 200) : [];
+    const out = {};
+    // 동시 4개씩 — gh 호출 폭주 방지
+    const queue = [...names];
+    await Promise.all(Array.from({ length: 4 }, async () => {
+      while (queue.length) {
+        const name = queue.shift();
+        const full = resolveProject(env.projectsRoot, name);
+        if (!full) { out[name] = null; continue; }
+        const repo = await originRepo(full);
+        out[name] = repo ? await visibility.get(repo) : null;
+      }
+    }));
+    res.json({ ok: true, visibility: out });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

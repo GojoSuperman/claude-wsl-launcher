@@ -30,8 +30,8 @@ PORT="${PORT:-41730}"
 PROJECTS_ROOT="${PROJECTS_ROOT:-}"   # 설치 시점에 주면 단축키에 구워 넣음(미설정이면 서버 기본 ~/projects)
 URL="http://localhost:${PORT}"
 # 단축키 표시 이름. SHORTCUT_NAME 으로 바꿀 수 있다(같은 이름의 기존 .lnk 를 덮어쓰므로,
-# 다른 런처와 충돌하지 않게 고유한 이름을 주면 된다). 개인용 기본은 한국어 이름.
-NAME="${SHORTCUT_NAME:-프로젝트 런처}"
+# 다른 런처와 충돌하지 않게 고유한 이름을 주면 된다).
+NAME="${SHORTCUT_NAME:-Claude WSL Launcher}"
 
 if [ ! -f "$PROJ/package.json" ]; then
   echo "오류: $PROJ/package.json 이 없습니다." >&2

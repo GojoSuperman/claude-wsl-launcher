@@ -43,8 +43,32 @@ async function loadProjects() {
   for (const p of data.projects) {
     grid.appendChild(renderCard(p));
   }
+  fillVisibility(data.projects.filter((p) => p.github).map((p) => p.name));
   if (data.projects.length === 0) {
     showBanner(t('noProjects'));
+  }
+}
+
+// GitHub 공개/비공개 배지를 비동기로 채운다 (gh 미설치/미로그인 → '?' 표시)
+async function fillVisibility(names) {
+  if (names.length === 0) return;
+  let data;
+  try {
+    const res = await fetch('/api/github/visibility', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names }),
+    });
+    data = await res.json();
+  } catch { data = null; }
+  for (const name of names) {
+    const badge = grid.querySelector(`.gh-badge[data-name="${CSS.escape(name)}"]`);
+    if (!badge) continue;
+    const v = data?.visibility?.[name] ?? null;
+    badge.classList.remove('public', 'private');
+    if (v === 'PUBLIC') { badge.textContent = t('ghPublic'); badge.classList.add('public'); badge.title = t('ghPublicTitle'); }
+    else if (v === 'PRIVATE' || v === 'INTERNAL') { badge.textContent = t('ghPrivate'); badge.classList.add('private'); badge.title = t('ghPrivateTitle'); }
+    else { badge.textContent = '?'; badge.title = t('ghVisibilityUnknown'); }
   }
 }
 
@@ -131,7 +155,21 @@ function renderCard(p) {
       if (g.dirty) dirtySpan.className = 'git-dirty';
       gitMeta.append(dirtySpan, document.createTextNode(` · ${relativeTime(g.lastCommitISO)}`));
     }
-    card.append(name, meta, gitMeta, actions);
+    card.append(name, meta, gitMeta);
+    if (p.github) {
+      // GitHub 연결 줄: owner/repo + 공개/비공개 배지(gh 로 비동기 조회 → fillVisibility 가 채움)
+      const gh = document.createElement('div');
+      gh.className = 'git-meta gh-line';
+      gh.textContent = `GitHub · ${p.github}`;
+      const badge = document.createElement('span');
+      badge.className = 'gh-badge';
+      badge.dataset.name = p.name;
+      badge.textContent = '…';
+      badge.title = t('ghVisibilityLoading');
+      gh.appendChild(badge);
+      card.appendChild(gh);
+    }
+    card.appendChild(actions);
   } else {
     // git 필드 없음(구버전 호환) → git 줄 생략
     card.append(name, meta, actions);

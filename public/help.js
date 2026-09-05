@@ -4,7 +4,7 @@ import { t, getLang } from './i18n.js';
 
 const REPO = 'https://github.com/GojoSuperman/claude-wsl-launcher';
 const GUIDE_PATH = { ko: 'docs/SETUP.ko.md', en: 'docs/SETUP.en.md', ja: 'docs/SETUP.ja.md' };
-const ITEM_KEYS = ['helpLaunch', 'helpRemote', 'helpNewProject', 'helpRename', 'helpConsole', 'helpShutdown', 'helpLang'];
+const ITEM_KEYS = ['helpLaunch', 'helpRemote', 'helpNewProject', 'helpRename', 'helpConsole', 'helpShutdown', 'helpLang', 'helpTheme', 'helpGithub'];
 
 const btn = document.getElementById('help-btn');
 const modal = document.getElementById('help-modal');

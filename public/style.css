@@ -28,6 +28,17 @@ button:disabled { opacity: .5; cursor: default; }
 .lang-switch button + button { border-left: 1px solid #8886; }
 .lang-switch button.active { background: #4a90e2; color: #fff; }
 
+/* 테마 전환 세그먼트 (언어 전환과 같은 모양) */
+.theme-switch { display: inline-flex; border: 1px solid #8886; border-radius: 8px; overflow: hidden; margin-right: .25rem; }
+.theme-switch button { padding: .35rem .6rem; border: none; border-radius: 0; background: transparent; color: inherit; font-size: .8rem; cursor: pointer; }
+.theme-switch button + button { border-left: 1px solid #8886; }
+.theme-switch button.active { background: #4a90e2; color: #fff; }
+
+/* 카드 GitHub 공개/비공개 배지 */
+.card .gh-badge { display: inline-block; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; border: 1px solid currentColor; margin-left: .3rem; vertical-align: middle; }
+.card .gh-badge.public { color: #2e8b57; }
+.card .gh-badge.private { color: #b8860b; }
+
 /* 도움말 버튼 + 모달 */
 #help-btn.ghost { background: transparent; color: inherit; }
 .help-modal {
