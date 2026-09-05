@@ -7,6 +7,23 @@
 
 ---
 
+## ゼロから起動まで — 何もない Windows PC で 5 ステップ (Claude Code にインストールを任せる)
+
+何も入っていない PC ならこの順序が最短です。人が行うのは **1・2 とログイン 1 回**だけで、残りは Claude Code がやります。
+
+| 手順 | どこで | やること |
+|---|---|---|
+| 1 | **Windows PowerShell(管理者)** | `wsl --install` → 再起動 → Ubuntu 初回起動でユーザー名・パスワードを作成 |
+| 2 | **Ubuntu ターミナル** | Claude Code をインストール: `curl -fsSL https://claude.ai/install.sh \| bash`(Node 不要)→ `claude` を一度実行して**ログイン** |
+| 3 | Ubuntu ターミナル | `cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd claude-wsl-launcher && claude` |
+| 4 | **Claude Code の中で** | **「インストールして」** — README を読んで `bash scripts/setup.sh` を実行します。キーボード入力が無い環境なので自動で全部「はい」。Node/nvm が無くてもインストールし、プロジェクトフォルダーを探して選び、デスクトップのショートカットまで作ります |
+| 5 | デスクトップ | ショートカットをダブルクリック |
+
+- 3 の clone も Claude Code に任せられます: `cd ~ && claude` でホームから起動し「この URL をクローンしてインストールして」。ランチャーは `~/projects` のような**プロジェクトフォルダーの中ではなくホーム**に置いてください。
+- 以下の 0〜7 は同じ手順を一段階ずつ確認しながら手で行う場合の説明です。
+
+---
+
 ## 0. このツールは何? / 必要なもの
 
 `~/projects` 内のプロジェクトをウェブ画面(ダッシュボード)で見て、ボタン一つでそのフォルダーから **Claude Code** を新しいターミナルウィンドウで起動する個人用ローカルツールです。
@@ -171,8 +188,9 @@ nvm install --lts
 **Claude Code CLI**
 
 ```bash
-claude --version   # 無ければ:
-npm install -g @anthropic-ai/claude-code
+claude --version   # 無ければ (どちらか):
+curl -fsSL https://claude.ai/install.sh | bash   # 公式インストーラー — Node 不要 (推奨)
+npm install -g @anthropic-ai/claude-code          # または npm (Node が必要)
 # インストール後 claude を一度実行してログイン。最新のインストール方法は Claude Code 公式ドキュメントを優先してください。
 ```
 

@@ -19,7 +19,7 @@ bash scripts/setup.sh
 
 - You can change the projects folder any time with **[Change]** at the top of the dashboard (saved to `~/.config/project-launcher/config.json`). To set it explicitly: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
 - **Letting an AI agent such as Claude Code install it**: plain `bash scripts/setup.sh` is enough. When no keyboard input is available it switches to `--yes` mode automatically, answers every question with yes and picks the candidate folder with the most repositories. Keep the tool itself in your home (`~`), **not inside the projects folder**.
-- Prefer to check each step yourself? → **[Setup Guide](docs/SETUP.en.md)**
+- Prefer to check each step yourself? → **[Setup Guide](docs/SETUP.en.md)**. Starting from a blank PC? → [Zero to launch in 5 steps](docs/SETUP.en.md#zero-to-launch--5-steps-on-a-blank-windows-pc-let-claude-code-install-it)
 
 ## Requirements
 

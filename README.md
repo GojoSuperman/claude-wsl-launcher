@@ -19,7 +19,7 @@ bash scripts/setup.sh
 
 - 프로젝트 폴더는 나중에 대시보드 상단 **[변경]** 으로 언제든 바꿀 수 있습니다 (`~/.config/project-launcher/config.json` 에 저장). 직접 지정하려면 `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
 - **Claude Code 같은 AI 에이전트에게 설치를 맡길 때**: 그냥 `bash scripts/setup.sh` 로도 됩니다. 키보드 입력이 없는 환경을 감지하면 자동으로 `--yes` 모드가 되어 질문 없이 전부 '예'로 진행하고, 프로젝트 폴더는 저장소가 가장 많은 후보를 자동 선택합니다. 이 도구 자체는 `~/projects` 같은 **프로젝트 폴더 안이 아니라 홈(`~`)에** 두세요.
-- 단계별로 확인하며 설치하고 싶다면 → **[설치 가이드](docs/SETUP.ko.md)**
+- 단계별로 확인하며 설치하고 싶다면 → **[설치 가이드](docs/SETUP.ko.md)**. 아무것도 없는 PC 에서 시작한다면 → [처음부터 끝까지 5단계](docs/SETUP.ko.md#처음부터-끝까지--빈-windows-pc-에서-5단계-claude-code-에게-설치-맡기기)
 
 ## 요구사항
 
