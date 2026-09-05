@@ -15,6 +15,7 @@ import { runningPaths, isRunning } from './running.js';
 import { create as createProject } from './creator.js';
 import { rename as renameProject } from './renamer.js';
 import { createConsoleStream } from './console-stream.js';
+import { createIdleShutdown } from './idle-shutdown.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 이 대시보드 서버 자신의 프로젝트 폴더 — 이름 변경 대상에서 제외(서버가 깨짐)
@@ -152,9 +153,22 @@ function attachWebSocket(srv) {
   wss.on('connection', (ws) => {
     const send = (text) => { if (ws.readyState === ws.OPEN) ws.send(text); };
     consoleStream.attach(send);
-    ws.on('close', () => consoleStream.detach(send));
+    idle.connected();
+    ws.on('close', () => { consoleStream.detach(send); idle.disconnected(); });
   });
 }
+
+// 브라우저 창(콘솔 WebSocket)이 모두 닫히고 유예가 지나면 자동 종료. AUTO_SHUTDOWN=0 으로 끔.
+const AUTO_SHUTDOWN = process.env.AUTO_SHUTDOWN !== '0';
+const idle = createIdleShutdown({
+  graceMs: 10000,
+  onShutdown: () => {
+    if (!AUTO_SHUTDOWN) return;
+    console.log('[idle] 대시보드 창이 닫혀 서버를 자동 종료합니다');
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1000).unref();
+  },
+});
 
 // 포트가 사용 중이면 다음 포트로 폴백하며 바인딩한다.
 function listen(port, triesLeft) {

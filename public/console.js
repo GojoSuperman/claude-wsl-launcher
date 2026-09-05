@@ -1,6 +1,6 @@
 // public/console.js
 // 대시보드 서버의 콘솔(stdout/stderr)을 하단 드로어에 읽기 전용으로 보여준다.
-// 목적: 서버가 살아있음을 눈에 보이게 해, 닫을 때 [서버 종료] 로 꺼야 함을 인지시킨다.
+// 목적: 서버가 살아있음을 눈에 보이게 한다. 이 WebSocket 이 모두 끊기면 서버가 유예 후 자동 종료된다(idle-shutdown).
 import { t } from './i18n.js';
 
 const XTerm = window.Terminal;

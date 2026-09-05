@@ -62,7 +62,7 @@ This creates a shortcut on your Windows desktop. Double-clicking it **starts the
 - **Card list**: Each folder under `~/projects/*` appears as a card, showing the git branch, whether there are uncommitted changes, the last commit time, a "Running" badge, and a "Has conversation history / New session" indicator.
 - **Launch claude**: Click the card button → opens `claude` in a **new WSL window** from that folder (with `--continue` if conversation history exists). Because it's a native WSL launch, you won't be asked to "trust the folder" again.
 - **Server console (bottom panel)**: Shows this server's logs in real time (read-only), so you can see that the server is alive.
-- **Shut down server button**: Stops the local server from the header.
+- **Shut down server button**: Stops the local server from the header. Closing the dashboard window also stops the server after ~10s (disable with `AUTO_SHUTDOWN=0`).
 - **Pull from remote**: For cards with an upstream, runs `git fetch`; if the branch is behind (`↓N`), runs `git pull --ff-only`.
 - **New project**: Creates a `~/projects/<name>` folder and runs `git init`.
 - **Rename**: `✏️ Rename` on a card renames the folder, moves the claude history folder along (keeps `--continue`), and if origin is GitHub runs `gh repo rename` to rename the repo and update the remote URL (needs gh CLI login; on failure only the local folder changes and a warning is shown). Refused while the project is running.

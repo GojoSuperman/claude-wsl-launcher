@@ -72,7 +72,7 @@ export const DICT = {
     helpNewProject: '[+ 새 프로젝트] — ~/projects 아래 폴더 생성 + git init',
     helpRename: '[✏️ 이름 변경] — 폴더 이름 변경 + claude 대화 이력 유지 + GitHub 저장소 이름 변경(gh CLI 로그인 필요)',
     helpConsole: '하단 콘솔 — 서버 로그(읽기 전용). 서버가 켜져 있음을 보여줌',
-    helpShutdown: '[서버 종료] — 로컬 대시보드 서버를 끔',
+    helpShutdown: '[서버 종료] — 로컬 대시보드 서버를 끔. 창을 그냥 닫아도 약 10초 뒤 자동 종료됨',
     helpLang: '한국어 | EN | 日本語 — 화면 언어 전환',
   },
   en: {
@@ -140,7 +140,7 @@ export const DICT = {
     helpNewProject: '[+ New Project] — creates a folder under ~/projects + git init',
     helpRename: '[✏️ Rename] — renames the folder, keeps claude history, renames the GitHub repo (needs gh CLI login)',
     helpConsole: 'Bottom console — server logs (read-only). Shows the server is running',
-    helpShutdown: '[Shut Down] — stops the local dashboard server',
+    helpShutdown: '[Shut Down] — stops the local dashboard server. Closing the window also stops it after ~10s',
     helpLang: '한국어 | EN | 日本語 — switch the display language',
   },
   ja: {
@@ -208,7 +208,7 @@ export const DICT = {
     helpNewProject: '[+ 新規プロジェクト] — ~/projects 配下にフォルダー作成 + git init',
     helpRename: '[✏️ 名前変更] — フォルダ名変更 + claude 履歴を維持 + GitHub リポジトリ名変更 (gh CLI ログイン必要)',
     helpConsole: '下部コンソール — サーバーログ（読み取り専用）。サーバーが稼働中であることを表示',
-    helpShutdown: '[サーバー停止] — ローカルのダッシュボードサーバーを停止',
+    helpShutdown: '[サーバー停止] — ローカルのダッシュボードサーバーを停止。ウィンドウを閉じても約10秒後に自動停止',
     helpLang: '한국어 | EN | 日本語 — 表示言語を切り替え',
   },
 };
