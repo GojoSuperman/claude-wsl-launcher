@@ -37,3 +37,14 @@ export function resolveProject(projectsRoot, name) {
   }
   return full;
 }
+
+/**
+ * GitHub 저장소 이름 규칙(영문·숫자·'-'·'_'·'.' 만, '.'/'..' 제외)에 맞는지 (순수).
+ * 한글 등 비ASCII 는 GitHub 가 '-' 로 바꿔 버리고, claude 세션 이력 폴더명도 겹칠 수 있어 거부.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isGithubSafeName(name) {
+  if (!isValidName(name)) return false;
+  return /^[A-Za-z0-9._-]+$/.test(name);
+}

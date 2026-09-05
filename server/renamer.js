@@ -4,7 +4,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { isValidName, resolveProject } from './paths.js';
+import { isValidName, isGithubSafeName, resolveProject } from './paths.js';
 import { encode } from './session.js';
 
 const execFileP = promisify(execFile);
@@ -47,6 +47,7 @@ export async function rename({ projectsRoot, home, name, newName, runGh = defaul
   const full = resolveProject(projectsRoot, name);
   if (!full) return { ok: false, error: 'unknown project' };
   if (!isValidName(newName)) return { ok: false, error: 'invalid name' };
+  if (!isGithubSafeName(newName)) return { ok: false, error: 'ascii only' };
   const target = path.join(projectsRoot, newName);
   if (fs.existsSync(target)) return { ok: false, error: 'already exists' };
   if (isRunning(full)) return { ok: false, error: 'project is running' };

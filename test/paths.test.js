@@ -1,5 +1,5 @@
 // test/paths.test.js
-import { test } from 'node:test';
+import { isGithubSafeName, test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -83,4 +83,9 @@ test('isValidName: 빈값/구분자/.. /개행/NUL → false', () => {
   assert.equal(isValidName('a\rb'), false);
   assert.equal(isValidName('x\x00'), false);
   assert.equal(isValidName(null), false);
+});
+
+test('isGithubSafeName: 영문·숫자·-_. 만 허용, 한글/공백/특수문자 거부', () => {
+  for (const ok of ['tower-defender', 'my_app.v2', 'A1']) assert.equal(isGithubSafeName(ok), true, ok);
+  for (const bad of ['보고서분석', 'my app', 'a/b', '..', '', 'app!', 'café']) assert.equal(isGithubSafeName(bad), false, bad);
 });

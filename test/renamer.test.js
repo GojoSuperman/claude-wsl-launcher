@@ -126,3 +126,11 @@ test('대시보드 서버 자신의 폴더 → self, 이동 안 함', async () =
   assert.equal(r.error, 'self');
   assert.equal(fs.existsSync(full), true);
 });
+
+test('한글 새 이름 → ascii only, 폴더 그대로', async () => {
+  const { root, home, full } = setup('old-app');
+  const r = await rename({ projectsRoot: root, home, name: 'old-app', newName: '보고서분석', runGh: noGh });
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'ascii only');
+  assert.equal(fs.existsSync(full), true);
+});

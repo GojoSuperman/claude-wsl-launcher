@@ -261,6 +261,11 @@ async function doRename(name, btn) {
   if (raw === null) return;
   const newName = raw.trim();
   if (!newName || newName === name) return;
+  if (!/^[A-Za-z0-9._-]+$/.test(newName)) {
+    // 한글·공백·특수문자: GitHub 가 거부하고 claude 이력 폴더명도 겹칠 수 있음
+    window.alert(t('renameAsciiOnly', newName));
+    return;
+  }
   hideBanner();
   btn.disabled = true;
   try {
@@ -273,6 +278,8 @@ async function doRename(name, btn) {
     if (data.ok) {
       await loadProjects();
       if (data.warning) showBanner(t('renameWarn', data.warning));
+    } else if (data.error === 'ascii only') {
+      showBanner(t('renameAsciiOnly', newName));
     } else {
       showBanner(t('renameFail', data.error ?? t('unknownError')));
     }
