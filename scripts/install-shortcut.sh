@@ -53,8 +53,25 @@ psq() { printf '%s' "$1" | sed "s/'/''/g"; }
 ARGS_PS="$(psq "$LNK_ARGS")"
 NAME_PS="$(psq "$NAME")"
 
-# Windows 임시 폴더(로컬 C: 경로 — UNC 회피)에 PowerShell 스크립트 작성
-WIN_TMP="$(cmd.exe /c "echo %TEMP%" 2>/dev/null | tr -d '\r')"
+# powershell.exe 경로: 비대화형 셸(Claude Code 등 AI 에이전트가 실행할 때)엔 Windows 경로가
+# PATH 에 없어 이름만으로는 못 찾는다 → System32 절대경로로 폴백. (doctor.sh·launch.sh 와 같은 규칙)
+resolve_pwsh() {
+  command -v powershell.exe >/dev/null 2>&1 && { echo "powershell.exe"; return 0; }
+  local p="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+  [ -f "$p" ] && { echo "$p"; return 0; }
+  return 1
+}
+if ! PWSH="$(resolve_pwsh)"; then
+  echo "오류: powershell.exe 를 찾지 못했습니다 (PATH 에도, /mnt/c/Windows/System32 에도 없음). WSL 에서 Windows 연동(interop)이 꺼져 있는지 확인하세요." >&2
+  exit 1
+fi
+
+# Windows 임시 폴더(로컬 C: 경로 — UNC 회피)에 PowerShell 스크립트 작성. cmd.exe 대신 powershell 로 조회(PATH 무관).
+WIN_TMP="$("$PWSH" -NoProfile -Command '$env:TEMP' 2>/dev/null | tr -d '\r')"
+if [ -z "$WIN_TMP" ]; then
+  echo "오류: Windows 임시 폴더(%TEMP%)를 알아내지 못했습니다." >&2
+  exit 1
+fi
 TMP_WSL="$(wslpath -u "$WIN_TMP")"
 PS1_WSL="${TMP_WSL}/make-launcher-shortcut.ps1"
 PS1_WIN="${WIN_TMP}\\make-launcher-shortcut.ps1"
@@ -75,7 +92,7 @@ PS1_WIN="${WIN_TMP}\\make-launcher-shortcut.ps1"
 } > "$PS1_WSL"
 
 echo "단축키 생성 중... (이름: ${NAME}.lnk)"
-LNK_PATH="$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PS1_WIN" 2>/dev/null | tr -d '\r')"
+LNK_PATH="$("$PWSH" -NoProfile -ExecutionPolicy Bypass -File "$PS1_WIN" 2>/dev/null | tr -d '\r')"
 rm -f "$PS1_WSL"
 
 if [ -n "$LNK_PATH" ]; then
@@ -84,7 +101,7 @@ if [ -n "$LNK_PATH" ]; then
   if [ -n "$PROJECTS_ROOT" ]; then
     echo "   스캔 폴더: ${PROJECTS_ROOT}"
   else
-    echo "   스캔 폴더: ~/projects (기본). 다른 폴더로 단축키를 만들려면: PROJECTS_ROOT=~/dev bash scripts/install-shortcut.sh"
+    echo "   스캔 폴더: 설정 파일(~/.config/project-launcher/config.json) 또는 기본 ~/projects — 대시보드 상단 [변경] 으로 바꿀 수 있음"
   fi
 else
   echo "⚠️  단축키 경로를 확인하지 못했습니다. PowerShell 출력/권한을 확인하세요." >&2
