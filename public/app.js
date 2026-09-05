@@ -1,5 +1,6 @@
 // public/app.js
 import { t, getLang, setLang } from './i18n.js';
+import { dialogConfirm, dialogAlert, dialogPrompt } from './dialog.js';
 
 const grid = document.getElementById('grid');
 const banner = document.getElementById('banner');
@@ -81,7 +82,7 @@ grid.addEventListener('click', async (e) => {
   if (cur !== 'PUBLIC' && cur !== 'PRIVATE') return; // 미확인(?)은 전환 불가
   const name = badge.dataset.name;
   const next = cur === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
-  if (!window.confirm(t(next === 'PUBLIC' ? 'ghMakePublicConfirm' : 'ghMakePrivateConfirm', name))) return;
+  if (!(await dialogConfirm(t(next === 'PUBLIC' ? 'ghMakePublicConfirm' : 'ghMakePrivateConfirm', name), { danger: next === 'PUBLIC' }))) return;
   hideBanner();
   badge.textContent = '…';
   try {
@@ -270,7 +271,7 @@ function renderRemote(remoteEl, name, ahead, behind) {
 }
 
 async function doPull(name, btn) {
-  if (!window.confirm(t('pullConfirm', name))) return;
+  if (!(await dialogConfirm(t('pullConfirm', name)))) return;
   hideBanner();
   btn.disabled = true;
   try {
@@ -293,12 +294,12 @@ async function doPull(name, btn) {
 }
 
 async function doCreate() {
-  const raw = window.prompt(t('createPrompt'));
+  const raw = await dialogPrompt(t('createPrompt'));
   if (raw === null) return;
   const name = raw.trim();
   if (!name) return;
   if (!/^[A-Za-z0-9._-]+$/.test(name)) {
-    window.alert(t('createAsciiOnly', name));
+    await dialogAlert(t('createAsciiOnly', name));
     return;
   }
   hideBanner();
@@ -324,14 +325,14 @@ async function doCreate() {
 
 async function doRename(name, btn) {
   // 다른 claude 창(다른 폴더에서 띄운 세션)이 이 폴더를 수정 중이면 프로세스로 감지 못 함 → 사용자 확인
-  if (!window.confirm(t('renameConfirm', name))) return;
-  const raw = window.prompt(t('renamePrompt', name), name);
+  if (!(await dialogConfirm(t('renameConfirm', name)))) return;
+  const raw = await dialogPrompt(t('renamePrompt', name), { value: name });
   if (raw === null) return;
   const newName = raw.trim();
   if (!newName || newName === name) return;
   if (!/^[A-Za-z0-9._-]+$/.test(newName)) {
     // 한글·공백·특수문자: GitHub 가 거부하고 claude 이력 폴더명도 겹칠 수 있음
-    window.alert(t('renameAsciiOnly', newName));
+    await dialogAlert(t('renameAsciiOnly', newName));
     return;
   }
   hideBanner();
@@ -363,7 +364,7 @@ refreshBtn.addEventListener('click', loadProjects);
 
 const shutdownBtn = document.getElementById('shutdown');
 shutdownBtn.addEventListener('click', async () => {
-  if (!window.confirm(t('shutdownConfirm'))) return;
+  if (!(await dialogConfirm(t('shutdownConfirm'), { danger: true }))) return;
   try {
     await fetch('/api/shutdown', { method: 'POST' });
   } catch { /* 종료 중 연결 끊김은 정상 */ }

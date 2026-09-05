@@ -83,3 +83,11 @@ button:disabled { opacity: .5; cursor: default; }
 /* 카드가 드로어에 가리지 않도록 본문 하단 여백 */
 body.drawer-open { padding-bottom: calc(32vh + 1rem); }
 body.drawer-open.drawer-collapsed { padding-bottom: calc(32px + 1rem); }
+
+/* 인앱 다이얼로그 (confirm/alert/prompt 대체) */
+.dlg-box { max-width: 480px; }
+.dlg-msg { white-space: pre-line; line-height: 1.5; margin: .25rem 0 .75rem; font-size: .93rem; }
+.dlg-input { width: 100%; box-sizing: border-box; padding: .5rem .7rem; margin: .2rem 0 .6rem; border: 1px solid #8886; border-radius: 6px; background: Canvas; color: CanvasText; font-size: .95rem; }
+.dlg-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: .6rem; }
+.dlg-actions button.ghost { background: transparent; color: inherit; }
+.dlg-actions button.danger { background: #e74c3c; border-color: #e74c3c; color: #fff; }
