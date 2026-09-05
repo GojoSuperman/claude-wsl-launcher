@@ -12,6 +12,7 @@ import { status as gitStatus, aheadBehind } from './git.js';
 import { fetch as gitFetch, pull as gitPull } from './git-sync.js';
 import { runningPaths, isRunning } from './running.js';
 import { create as createProject } from './creator.js';
+import { rename as renameProject } from './renamer.js';
 import { createConsoleStream } from './console-stream.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,6 +102,22 @@ app.post('/api/git/pull', async (req, res) => {
 app.post('/api/projects/create', async (req, res) => {
   try {
     const r = createProject(env.projectsRoot, req.body?.name);
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/projects/rename', async (req, res) => {
+  try {
+    const runSet = runningPaths();
+    const r = await renameProject({
+      projectsRoot: env.projectsRoot,
+      home: env.home,
+      name: req.body?.name,
+      newName: req.body?.newName,
+      isRunning: (full) => isRunning(runSet, full),
+    });
     res.json(r);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

@@ -66,6 +66,7 @@ bash scripts/install-shortcut.sh
 - **サーバー終了ボタン**: ヘッダーからローカルサーバーを終了します。
 - **リモート取得**: アップストリームがあるカードで `git fetch` を実行し、`↓N commits behind` の場合は `git pull --ff-only`。
 - **新しいプロジェクト**: `~/projects/<名前>` フォルダーを作成し `git init`。
+- **名前変更**: カードの `✏️ 名前変更` → フォルダ名変更 + claude 履歴フォルダも移動(`--continue` 維持) + origin が GitHub なら `gh repo rename` でリポジトリ名・remote URL を更新(gh CLI ログイン必要。失敗時はローカルのみ変更し警告表示)。実行中のプロジェクトは拒否。
 - **多言語（i18n）**: ヘッダーで 한국어 · English · 日本語 を切り替え（選択は記憶）。
 - **アプリ内ヘルプ**: ヘッダーの `❓ ヘルプ` ボタンまたは `?` キーで使い方モーダル。
 - **スキャンフォルダ指定**: `PROJECTS_ROOT` で既定の `~/projects` 以外をスキャン。

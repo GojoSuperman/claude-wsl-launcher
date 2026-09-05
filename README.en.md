@@ -65,6 +65,7 @@ This creates a shortcut on your Windows desktop. Double-clicking it **starts the
 - **Shut down server button**: Stops the local server from the header.
 - **Pull from remote**: For cards with an upstream, runs `git fetch`; if the branch is behind (`↓N`), runs `git pull --ff-only`.
 - **New project**: Creates a `~/projects/<name>` folder and runs `git init`.
+- **Rename**: `✏️ Rename` on a card renames the folder, moves the claude history folder along (keeps `--continue`), and if origin is GitHub runs `gh repo rename` to rename the repo and update the remote URL (needs gh CLI login; on failure only the local folder changes and a warning is shown). Refused while the project is running.
 - **i18n**: Switch between 한국어 · English · 日本語 in the header (choice is remembered).
 - **In-app help**: A `❓ Help` button (or the `?` key) opens a usage modal.
 - **Custom scan folder**: `PROJECTS_ROOT` scans a folder other than the default `~/projects`.

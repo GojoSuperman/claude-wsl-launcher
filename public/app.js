@@ -95,6 +95,14 @@ function renderCard(p) {
 
   actions.appendChild(launchBtn);
 
+  const renameBtn = document.createElement('button');
+  renameBtn.type = 'button';
+  renameBtn.className = 'ghost';
+  renameBtn.textContent = t('rename');
+  renameBtn.title = t('renameTitle');
+  renameBtn.addEventListener('click', () => doRename(p.name, renameBtn));
+  actions.appendChild(renameBtn);
+
   if (p.git && p.git.isGit && p.git.hasUpstream) {
     const remote = document.createElement('span');
     remote.className = 'remote';
@@ -238,6 +246,33 @@ async function doCreate() {
     showBanner(t('createReqFail'));
   } finally {
     newProjectBtn.disabled = false;
+  }
+}
+
+async function doRename(name, btn) {
+  const raw = window.prompt(t('renamePrompt', name), name);
+  if (raw === null) return;
+  const newName = raw.trim();
+  if (!newName || newName === name) return;
+  hideBanner();
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/projects/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, newName }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      await loadProjects();
+      if (data.warning) showBanner(t('renameWarn', data.warning));
+    } else {
+      showBanner(t('renameFail', data.error ?? t('unknownError')));
+    }
+  } catch {
+    showBanner(t('renameReqFail'));
+  } finally {
+    btn.disabled = false;
   }
 }
 
