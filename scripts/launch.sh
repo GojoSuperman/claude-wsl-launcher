@@ -29,7 +29,9 @@ find_chrome() {
     [ -f "$p" ] && { printf '%s' "$p"; return 0; }
   done
   # 사용자 로컬(AppData) 설치 폴백 — Windows 사용자명은 PC마다 다르므로 런타임 조회
-  winuser="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
+  local pwsh
+  pwsh="$(resolve_pwsh)" || return 1
+  winuser="$("$pwsh" -NoProfile -Command '$env:USERNAME' 2>/dev/null | tr -d '\r')"
   if [ -n "$winuser" ]; then
     p="/mnt/c/Users/${winuser}/AppData/Local/Google/Chrome/Application/chrome.exe"
     [ -f "$p" ] && { printf '%s' "$p"; return 0; }
