@@ -157,6 +157,14 @@ case "$(classify_claude "$CLAUDE_PATH")" in
   native)
     ok "claude (리눅스 네이티브): $CLAUDE_PATH  ($(claude --version 2>&1 | head -1))" ;;
 esac
+# 방금 설치됐으면 실패 집계에서 제외 (Node 와 같은 규칙)
+if [ "$(classify_claude "$CLAUDE_PATH")" != native ]; then
+  hash -r 2>/dev/null || true
+  NEW_CLAUDE="$(command -v claude 2>/dev/null || true)"
+  if [ "$(classify_claude "$NEW_CLAUDE")" = native ]; then
+    ok "claude 설치됨: $NEW_CLAUDE  ($(claude --version 2>&1 | head -1))"; FAIL=$((FAIL - 1))
+  fi
+fi
 
 # [4b] GitHub CLI (선택) — 카드 '이름 변경' 이 GitHub 저장소 이름까지 바꿀 때만 필요
 if command -v gh >/dev/null 2>&1; then
