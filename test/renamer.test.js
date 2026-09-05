@@ -60,6 +60,8 @@ test('GitHub origin 있으면 gh repo rename 호출, 결과 github 필드로', a
   assert.deepEqual(args, ['repo', 'rename', 'new-app', '-R', 'me/old-app', '--yes']);
   assert.equal(r.github, 'me/new-app');
   assert.equal(r.warning, undefined);
+  const url = execFileSync('git', ['-C', path.join(root, 'new-app'), 'remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim();
+  assert.equal(url, 'https://github.com/me/new-app.git');
 });
 
 test('gh 실패 → 로컬은 유지, ok:true + warning', async () => {

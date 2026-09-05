@@ -1,6 +1,7 @@
 // server/renamer.js
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { isValidName, resolveProject } from './paths.js';
@@ -77,5 +78,13 @@ export async function rename({ projectsRoot, home, name, newName, runGh = defaul
     console.warn(`[renamer] gh repo rename 실패 (${repo}):`, r.error);
     return { ok: true, path: target, github: null, warning: `GitHub rename failed: ${r.error}` };
   }
-  return { ok: true, path: target, github: `${repo.split('/')[0]}/${newName}` };
+  // gh 는 -R 로 지정하면 로컬 remote 를 안 바꾸므로 직접 갱신 (실패해도 redirect 로 동작하니 비치명적)
+  const owner = repo.split('/')[0];
+  try {
+    execFileSync('git', ['-C', target, 'remote', 'set-url', 'origin', `https://github.com/${owner}/${newName}.git`],
+      { stdio: 'ignore', timeout: 3000 });
+  } catch (e) {
+    console.warn(`[renamer] remote URL 갱신 실패 (${newName}):`, e.message);
+  }
+  return { ok: true, path: target, github: `${owner}/${newName}` };
 }
