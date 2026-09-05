@@ -233,6 +233,10 @@ async function doCreate() {
   if (raw === null) return;
   const name = raw.trim();
   if (!name) return;
+  if (!/^[A-Za-z0-9._-]+$/.test(name)) {
+    window.alert(t('createAsciiOnly', name));
+    return;
+  }
   hideBanner();
   newProjectBtn.disabled = true;
   try {
@@ -245,7 +249,7 @@ async function doCreate() {
     if (data.ok) {
       loadProjects();
     } else {
-      showBanner(t('createFail', data.error ?? t('unknownError')));
+      showBanner(data.error === 'ascii only' ? t('createAsciiOnly', name) : t('createFail', data.error ?? t('unknownError')));
     }
   } catch {
     showBanner(t('createReqFail'));

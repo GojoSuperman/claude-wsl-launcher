@@ -71,3 +71,11 @@ test('git 없는 환경 → 폴더는 생성, ok:true (git init 비치명적)', 
     process.env.PATH = savedPath;
   }
 });
+
+test('한글 이름 → ok:false, ascii only, 아무것도 안 만듦', () => {
+  const root = tmpRoot();
+  const r = create(root, '보고서분석');
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'ascii only');
+  assert.equal(fs.readdirSync(root).length, 0);
+});

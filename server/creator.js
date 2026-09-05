@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { isValidName } from './paths.js';
+import { isValidName, isGithubSafeName } from './paths.js';
 
 /**
  * projectsRoot 아래에 name 폴더를 만들고 git init 한다 (mutating). 절대 throw 안 함.
@@ -14,6 +14,9 @@ export function create(projectsRoot, name) {
   }
   if (!isValidName(name)) {
     return { ok: false, error: 'invalid name' };
+  }
+  if (!isGithubSafeName(name)) {
+    return { ok: false, error: 'ascii only' }; // 한글 등: GitHub 규칙 + claude 세션 폴더 충돌 방지
   }
   const full = path.join(projectsRoot, name);
   if (fs.existsSync(full)) {
