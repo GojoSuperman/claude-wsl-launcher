@@ -20,6 +20,12 @@ for arg in "$@"; do
     --yes|-y) export SETUP_YES=1 ;;
   esac
 done
+# 키보드 입력이 없는 환경(AI 에이전트·스크립트·파이프)에서는 질문마다 '아니요'로 흘러 반쪽 설치가 되므로
+# 자동으로 --yes 와 같게 동작한다. 사람이 터미널에서 직접 돌리면(TTY) 평소처럼 물어본다.
+if [ -z "${SETUP_YES:-}" ] && [ ! -t 0 ]; then
+  export SETUP_YES=1
+  echo "[setup] 키보드 입력이 없는 환경 → 모든 질문을 '예'로 진행합니다 (--yes 와 동일)"
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJ="$(cd "$SCRIPT_DIR/.." && pwd -P)"

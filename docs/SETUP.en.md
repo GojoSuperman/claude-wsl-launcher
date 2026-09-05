@@ -70,7 +70,7 @@ What it does:
 
 - Pressing Enter on any question means "No". Anything you skip can be done later by running `bash scripts/setup.sh` again.
 - If you already keep projects somewhere (`~/dev`, `~/work`, …) it shows up in the candidate list with its repository count; just pick the number. You can change it later with **[Change]** at the top of the dashboard.
-- To finish without questions (AI agents, scripts): `bash scripts/setup.sh --yes` answers yes to everything and picks the candidate with the most repositories.
+- To finish without questions (AI agents, scripts): `bash scripts/setup.sh --yes` answers yes to everything and picks the candidate with the most repositories. When no keyboard input is available this mode turns on by itself, even without `--yes`.
 - To set the folder explicitly: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
 - To change the shortcut name: `SHORTCUT_NAME='My Launcher' bash scripts/setup.sh` (default `Claude WSL Launcher`).
 - When you see `✅` and the URL at the end, you are done.
