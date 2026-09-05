@@ -118,3 +118,11 @@ test('실행 중 프로젝트 → running, 이동 안 함', async () => {
   assert.match(r.error, /running/);
   assert.equal(fs.existsSync(full), true);
 });
+
+test('대시보드 서버 자신의 폴더 → self, 이동 안 함', async () => {
+  const { root, home, full } = setup('old-app');
+  const r = await rename({ projectsRoot: root, home, name: 'old-app', newName: 'x', runGh: noGh, isSelf: () => true });
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'self');
+  assert.equal(fs.existsSync(full), true);
+});
