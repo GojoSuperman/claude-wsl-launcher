@@ -15,9 +15,10 @@ cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd 
 bash scripts/setup.sh
 ```
 
-`setup.sh` checks Node, claude and the dependencies, offers to install whatever is missing, and creates a desktop shortcut. When it finishes, **double-click the shortcut** (it opens an app-style window if Chrome is installed, otherwise your default browser; or run `npm start` and open http://127.0.0.1:41730).
+`setup.sh` checks Node, claude and the dependencies, offers to install whatever is missing, **finds the folders under your home that hold git repositories and lets you pick your projects folder**, then creates a desktop shortcut. When it finishes, **double-click the shortcut** (it opens an app-style window if Chrome is installed, otherwise your default browser; or run `npm start` and open http://127.0.0.1:41730).
 
-- The scanned folder defaults to `~/projects`. To use another folder: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
+- You can change the projects folder any time with **[Change]** at the top of the dashboard (saved to `~/.config/project-launcher/config.json`). To set it explicitly: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
+- **Letting an AI agent such as Claude Code install it**: `bash scripts/setup.sh --yes` answers every question with yes and picks the candidate folder with the most repositories. Keep the tool itself in your home (`~`), **not inside the projects folder**.
 - Prefer to check each step yourself? → **[Setup Guide](docs/SETUP.en.md)**
 
 ## Requirements
@@ -47,6 +48,7 @@ Distro name, home and desktop paths are **detected at runtime**, so there is not
 - **Server console (bottom panel)**: this server's log, streamed live (read-only).
 - **Auto shutdown**: closing the dashboard window stops the server after about 10 seconds (`AUTO_SHUTDOWN=0` disables). The **Shut down** button in the header stops it immediately.
 - **Languages**: 한국어 · English · 日本語 (remembered). **In-app help**: `❓ Help` button or the `?` key.
+- **Projects folder pick/change**: chosen from detected candidates at install time, changeable any time with [Change] at the top of the dashboard; when there are no cards the banner offers it too. Priority: `PROJECTS_ROOT` env var > config file > `~/projects`.
 - **Port fallback**: if `41730` is busy, moves to `41731`–`41739`. Set one with `PORT=5000 npm start`.
 
 ## Why this tool?

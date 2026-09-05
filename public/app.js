@@ -26,6 +26,50 @@ function applyStaticI18n() {
   langSwitch.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.lang === lang));
 }
 
+// ---- 스캔 폴더 (설정 파일) ----
+let rootInfo = { projectsRoot: '', source: 'default', home: '' };
+const rootPathEl = document.getElementById('root-path');
+const rootChangeBtn = document.getElementById('root-change');
+
+function shortPath(p) {
+  return rootInfo.home && p.startsWith(rootInfo.home) ? '~' + p.slice(rootInfo.home.length) : p;
+}
+
+async function loadRoot() {
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    if (data.ok) rootInfo = data;
+  } catch { /* 표시만 못 할 뿐 */ }
+  rootPathEl.textContent = shortPath(rootInfo.projectsRoot || '');
+  rootChangeBtn.disabled = rootInfo.source === 'env';
+  rootChangeBtn.title = rootInfo.source === 'env' ? t('rootLockedEnv') : t('rootChangeTitle');
+}
+
+async function changeRoot() {
+  const raw = await dialogPrompt(t('rootPrompt'), { value: shortPath(rootInfo.projectsRoot || ''), placeholder: '~/dev' });
+  if (raw === null || !raw.trim()) return;
+  hideBanner();
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectsRoot: raw.trim() }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      await dialogAlert(t('rootFail', t(`rootErr_${data.error}`) === `rootErr_${data.error}` ? data.error : t(`rootErr_${data.error}`)));
+      return;
+    }
+    if (data.warning === 'windows-fs') await dialogAlert(t('rootWarnWindowsFs'));
+    await loadRoot();
+    await loadProjects();
+  } catch {
+    showBanner(t('connectFail'));
+  }
+}
+rootChangeBtn.addEventListener('click', changeRoot);
+
 async function loadProjects() {
   hideBanner();
   grid.innerHTML = '';
@@ -46,7 +90,12 @@ async function loadProjects() {
   }
   fillVisibility(data.projects.filter((p) => p.github).map((p) => p.name));
   if (data.projects.length === 0) {
-    showBanner(t('noProjects'));
+    // 빈 목록 = 스캔 폴더가 잘못 잡혔을 가능성이 가장 큼 → 바로 바꿀 수 있게
+    showBanner(t('noProjects', shortPath(rootInfo.projectsRoot)));
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'small'; b.textContent = t('rootChange');
+    b.addEventListener('click', changeRoot);
+    banner.appendChild(b);
   }
 }
 
@@ -377,8 +426,8 @@ langSwitch.querySelectorAll('button').forEach((b) => {
 });
 window.addEventListener('i18n:change', () => {
   applyStaticI18n();
-  loadProjects();
+  loadRoot().then(loadProjects);
 });
 
 applyStaticI18n();
-loadProjects();
+loadRoot().then(loadProjects);

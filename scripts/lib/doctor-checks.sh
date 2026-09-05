@@ -31,6 +31,8 @@ is_node_ge() {
 #   프롬프트는 stderr 로 보내 stdout(결과 캡처)을 더럽히지 않는다.
 ask_yn() {
   local msg="${1:-진행할까요?}" ans
+  # SETUP_YES=1 (setup.sh --yes): 비대화형 설치 — 모든 질문을 '예'로
+  if [ -n "${SETUP_YES:-}" ]; then printf '%s\n[자동: 예]\n' "$msg" >&2; return 0; fi
   printf '%s\n[Y = 네 / N = 아니요]  (그냥 Enter = 아니요): ' "$msg" >&2
   read -r ans 2>/dev/null || ans=""
   case "$ans" in [Yy]*) return 0 ;; *) return 1 ;; esac

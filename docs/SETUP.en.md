@@ -65,14 +65,17 @@ What it does:
 | 4 | (optional) `gh` logged in? | Hint only |
 | 5 | `scripts/*.sh` use LF line endings? | "Fix? [Y/N]" |
 | 6 | Dependencies (`node_modules`) | Runs `npm install` if missing |
+| 6.5 | **Projects folder**: finds folders under your home that hold several git repositories and lists them by number | Saves your pick to `~/.config/project-launcher/config.json`. Creates `~/projects` if nothing is found |
 | 7 | Desktop shortcut | "Create? [Y/N]" |
 
 - Pressing Enter on any question means "No". Anything you skip can be done later by running `bash scripts/setup.sh` again.
-- To scan a folder other than `~/projects`: `PROJECTS_ROOT=~/dev bash scripts/setup.sh` (the value is baked into the shortcut).
+- If you already keep projects somewhere (`~/dev`, `~/work`, …) it shows up in the candidate list with its repository count; just pick the number. You can change it later with **[Change]** at the top of the dashboard.
+- To finish without questions (AI agents, scripts): `bash scripts/setup.sh --yes` answers yes to everything and picks the candidate with the most repositories.
+- To set the folder explicitly: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
 - To change the shortcut name: `SHORTCUT_NAME='My Launcher' bash scripts/setup.sh` (default `Claude WSL Launcher`).
 - When you see `✅` and the URL at the end, you are done.
 
-> The tool scans `~/projects` **regardless of where the tool itself lives**. Put your work projects under it and they show up as cards. If the folder does not exist: `mkdir -p ~/projects`.
+> The tool scans the chosen projects folder **regardless of where the tool itself lives**. Each subfolder becomes a card. Priority: `PROJECTS_ROOT` env var > config file > `~/projects`.
 
 ---
 
@@ -91,7 +94,7 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 ```
 
 - If the port is busy it falls back to 41731–41739; open the address printed in the log. Pick one with `PORT=5000 npm start`.
-- Choose the scanned folder: `PROJECTS_ROOT=~/dev npm start` (absolute paths, `~/sub`, or a path relative to home).
+- Change the projects folder: **Scan folder [Change]** at the top of the dashboard (saved to the config file, no restart). When there are no cards at all, the banner offers it too. For a one-off run on another folder: `PROJECTS_ROOT=~/dev npm start` ([Change] is locked then).
 - **Stopping**: closing the dashboard window stops the server automatically after about 10 seconds. To stop immediately use the **[Shut down]** button in the header or `Ctrl+C` in the terminal. (Disable auto-stop with `AUTO_SHUTDOWN=0 npm start`.)
 
 ---

@@ -65,14 +65,17 @@ bash scripts/setup.sh
 | 4 | (선택) `gh` 로그인 여부 | 안내만 |
 | 5 | `scripts/*.sh` 줄바꿈이 LF 인지 | "고칠까요? [Y/N]" |
 | 6 | 의존성(`node_modules`) | 없으면 `npm install` |
+| 6.5 | **프로젝트 폴더**: 홈 아래에서 git 저장소를 여러 개 품은 폴더를 찾아 번호로 보여줌 | 고른 폴더를 `~/.config/project-launcher/config.json` 에 저장. 후보가 없으면 `~/projects` 생성 |
 | 7 | 바탕화면 단축키 | "만들까요? [Y/N]" |
 
 - 모든 질문은 그냥 Enter 를 치면 "아니요" 입니다. 건너뛴 것은 나중에 다시 `bash scripts/setup.sh` 로 이어서 할 수 있습니다.
-- 스캔 폴더를 `~/projects` 가 아닌 곳으로 하려면: `PROJECTS_ROOT=~/dev bash scripts/setup.sh` (단축키에 그 값이 박힙니다).
+- 이미 쓰던 프로젝트 폴더(`~/dev`, `~/work` 등)가 있으면 후보 목록에 저장소 수와 함께 뜹니다. 번호만 고르면 됩니다. 나중에 대시보드 상단 **[변경]** 으로 바꿀 수 있습니다.
+- 질문 없이 끝내려면(AI 에이전트·스크립트): `bash scripts/setup.sh --yes` — 전부 '예', 폴더는 저장소가 가장 많은 후보 자동 선택.
+- 폴더를 직접 지정하려면: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
 - 단축키 이름을 바꾸려면: `SHORTCUT_NAME='내 런처' bash scripts/setup.sh` (기본 `Claude WSL Launcher`).
 - 마지막에 `✅ 설치 완료` 와 접속 주소가 보이면 끝입니다.
 
-> 이 도구는 **도구를 둔 위치와 별개로** `~/projects` 를 스캔합니다. 작업 프로젝트들을 그 아래 두면 카드로 보입니다. 폴더가 없으면 `mkdir -p ~/projects`.
+> 이 도구는 **도구를 둔 위치와 별개로** 고른 프로젝트 폴더를 스캔합니다. 그 아래 폴더 하나하나가 카드가 됩니다. 우선순위는 `PROJECTS_ROOT` 환경변수 > 설정 파일 > `~/projects`.
 
 ---
 
@@ -91,7 +94,7 @@ npm start       # 마지막에 "프로젝트 런처: http://127.0.0.1:41730" 이
 ```
 
 - 포트가 사용 중이면 41731~41739 로 자동 폴백되니 로그에 찍힌 실제 주소를 엽니다. 지정: `PORT=5000 npm start`
-- 스캔 폴더 지정: `PROJECTS_ROOT=~/dev npm start` (절대경로·`~/하위`·홈 기준 상대경로 모두 가능)
+- 프로젝트 폴더 바꾸기: 대시보드 상단 **스캔 폴더 [변경]** (설정 파일에 저장, 재시작 불필요). 카드가 하나도 없을 때는 배너에서도 바꿀 수 있습니다. 한 번만 다른 폴더로 띄우려면 `PROJECTS_ROOT=~/dev npm start` (이때는 [변경] 이 잠깁니다).
 - **끄기**: 대시보드 창을 닫으면 약 10초 뒤 서버가 **자동 종료**됩니다. 바로 끄려면 헤더의 **[서버 종료]** 버튼 또는 터미널에서 `Ctrl+C`. (자동 종료를 끄려면 `AUTO_SHUTDOWN=0 npm start`)
 
 ---

@@ -1,6 +1,7 @@
 // server/env.js
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import { configPath, readConfig, normalizeRoot } from './config.js';
 
 /** wsl.exe -l -q 첫 줄을 폴백 distro 로 (실패 시 빈 문자열) */
 function defaultFallback() {
@@ -14,19 +15,18 @@ function defaultFallback() {
 }
 
 /**
- * 스캔할 프로젝트 루트 결정. PROJECTS_ROOT 로 사용자 기존 작업 폴더 지정 가능.
+ * 스캔할 프로젝트 루트 결정. 우선순위: PROJECTS_ROOT 환경변수 > 설정 파일 > $HOME/projects.
  * - 미설정/공백 → 기본 $HOME/projects
  * - '~' 또는 '~/sub' → 홈 기준 확장
  * - 절대경로 → 그대로(정규화)
  * - 상대경로 → 홈 기준으로 해석
  */
-function resolveProjectsRoot(processEnv, home) {
-  const raw = (processEnv.PROJECTS_ROOT || '').trim();
-  if (!raw) return path.join(home, 'projects');
-  if (raw === '~') return home;
-  if (raw.startsWith('~/')) return path.join(home, raw.slice(2));
-  if (path.isAbsolute(raw)) return path.normalize(raw);
-  return path.join(home, raw);
+function resolveProjectsRoot(processEnv, home, readCfg) {
+  const fromEnv = normalizeRoot(processEnv.PROJECTS_ROOT, home);
+  if (fromEnv) return { projectsRoot: fromEnv, projectsRootSource: 'env' };
+  const fromCfg = normalizeRoot(readCfg(configPath(processEnv, home)).projectsRoot, home);
+  if (fromCfg) return { projectsRoot: fromCfg, projectsRootSource: 'config' };
+  return { projectsRoot: path.join(home, 'projects'), projectsRootSource: 'default' };
 }
 
 /**
@@ -34,7 +34,7 @@ function resolveProjectsRoot(processEnv, home) {
  * @param {object} processEnv  보통 process.env
  * @param {() => string} fallbackDistro  WSL_DISTRO_NAME 없을 때 호출
  */
-export function detectEnv(processEnv, fallbackDistro = defaultFallback) {
+export function detectEnv(processEnv, fallbackDistro = defaultFallback, readCfg = readConfig) {
   const home = processEnv.HOME || '';
   const user = processEnv.USER || '';
   const distro = processEnv.WSL_DISTRO_NAME || fallbackDistro();
@@ -45,6 +45,6 @@ export function detectEnv(processEnv, fallbackDistro = defaultFallback) {
     distro,
     home,
     user,
-    projectsRoot: resolveProjectsRoot(processEnv, home),
+    ...resolveProjectsRoot(processEnv, home, readCfg),
   };
 }

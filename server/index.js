@@ -5,6 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { detectEnv } from './env.js';
+import { configPath, writeConfig, validateRoot } from './config.js';
 import { list } from './scanner.js';
 import { hasSession } from './session.js';
 import { resolveProject } from './paths.js';
@@ -41,7 +42,7 @@ try {
   console.error('[env] 시작 실패:', e.message);
   process.exit(1);
 }
-console.log(`[env] distro=${env.distro} projectsRoot=${env.projectsRoot}`);
+console.log(`[env] distro=${env.distro} projectsRoot=${env.projectsRoot} (${env.projectsRootSource})`);
 
 const app = express();
 app.use(express.json());
@@ -142,6 +143,28 @@ app.post('/api/github/visibility', async (req, res) => {
       }
     }));
     res.json({ ok: true, visibility: out });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// 스캔 폴더 설정: 조회 / 변경(설정 파일에 저장 + 즉시 적용). PROJECTS_ROOT 환경변수가 있으면 변경 불가(env 우선).
+app.get('/api/config', (req, res) => {
+  res.json({ ok: true, projectsRoot: env.projectsRoot, source: env.projectsRootSource, home: env.home });
+});
+app.post('/api/config', (req, res) => {
+  try {
+    if (env.projectsRootSource === 'env') {
+      return res.json({ ok: false, error: 'locked by PROJECTS_ROOT env' });
+    }
+    const v = validateRoot(req.body?.projectsRoot, env.home);
+    if (!v.ok) return res.json({ ok: false, error: v.error });
+    const w = writeConfig(configPath(process.env, env.home), { projectsRoot: v.path });
+    if (!w.ok) return res.json({ ok: false, error: w.error });
+    env.projectsRoot = v.path;
+    env.projectsRootSource = 'config';
+    console.log(`[config] projectsRoot → ${v.path}`);
+    res.json({ ok: true, projectsRoot: v.path, warning: v.warning });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

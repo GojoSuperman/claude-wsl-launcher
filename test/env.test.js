@@ -53,3 +53,16 @@ test('PROJECTS_ROOT 공백/빈 문자열 → 기본값', () => {
   const env = detectEnv({ WSL_DISTRO_NAME: 'd', HOME: '/home/g', USER: 'g', PROJECTS_ROOT: '   ' });
   assert.equal(env.projectsRoot, '/home/g/projects');
 });
+
+test('설정 파일의 projectsRoot 가 기본값보다 우선, 환경변수는 설정보다 우선', () => {
+  const cfg = () => ({ projectsRoot: '~/work' });
+  const a = detectEnv({ WSL_DISTRO_NAME: 'd', HOME: '/home/g', USER: 'g' }, () => '', cfg);
+  assert.equal(a.projectsRoot, '/home/g/work');
+  assert.equal(a.projectsRootSource, 'config');
+  const b = detectEnv({ WSL_DISTRO_NAME: 'd', HOME: '/home/g', USER: 'g', PROJECTS_ROOT: '/srv/x' }, () => '', cfg);
+  assert.equal(b.projectsRoot, '/srv/x');
+  assert.equal(b.projectsRootSource, 'env');
+  const c = detectEnv({ WSL_DISTRO_NAME: 'd', HOME: '/home/g', USER: 'g' }, () => '', () => ({}));
+  assert.equal(c.projectsRoot, '/home/g/projects');
+  assert.equal(c.projectsRootSource, 'default');
+});
