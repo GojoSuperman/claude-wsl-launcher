@@ -35,6 +35,11 @@ else
   run_or_show npm install --prefix "$PROJ" || DOCTOR_RC=1
 fi
 
+# doctor 는 의존성이 없던 시점의 판정이므로, 설치 후 조용히 한 번 더 점검해 최종 판정을 갱신
+if [ "$DOCTOR_RC" -ne 0 ]; then
+  bash "$SCRIPT_DIR/doctor.sh" >/dev/null 2>&1 && DOCTOR_RC=0
+fi
+
 # [3] 바탕화면 단축키 (선택) --------------------------------------------------
 echo
 if [ -n "${SETUP_NO_SHORTCUT:-}" ]; then
