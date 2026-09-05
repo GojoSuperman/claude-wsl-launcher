@@ -104,7 +104,7 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 | **[Check remote]** → **[Pull]** | `git fetch`, then `git pull --ff-only` if behind (shown only on cards with an upstream) |
 | **[+ New project]** | Creates `~/projects/<name>` and runs `git init` |
 | **[✏️ Rename project]** | Renames the folder and moves the claude history folder along. If origin is GitHub, runs `gh repo rename` to update the repo name and remote URL (needs gh login; on failure only the local folder changes and a warning appears). Disabled for running projects and this tool's own folder |
-| **GitHub line** on a card | The origin repo (`owner/repo`) and a **public/private** badge. Shows `?` without gh login |
+| **GitHub line** on a card | The origin repo (`owner/repo`) and a **public/private** badge. Shows `?` without gh login. Click the badge to switch after confirming (needs admin permission on the repo) |
 | **Auto · ☀️ · 🌙** | Light/dark theme. Auto follows the Windows setting (remembered) |
 | **[❓ Help]** / `?` key | Usage modal |
 | Bottom **server console** | This server's log (read-only). ▾ collapses/expands |

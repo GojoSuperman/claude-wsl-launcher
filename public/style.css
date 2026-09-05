@@ -35,7 +35,7 @@ button:disabled { opacity: .5; cursor: default; }
 .theme-switch button.active { background: #4a90e2; color: #fff; }
 
 /* 카드 GitHub 공개/비공개 배지 */
-.card .gh-badge { display: inline-block; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; border: 1px solid currentColor; margin-left: .3rem; vertical-align: middle; }
+.card .gh-badge { cursor: pointer; display: inline-block; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; border: 1px solid currentColor; margin-left: .3rem; vertical-align: middle; }
 .card .gh-badge.public { color: #2e8b57; }
 .card .gh-badge.private { color: #b8860b; }
 

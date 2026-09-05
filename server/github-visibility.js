@@ -50,5 +50,31 @@ export function createVisibilityLookup({ runner = defaultRunner, ttlMs = 10 * 60
     inflight.set(nameWithOwner, p);
     return p;
   }
-  return { get, size: () => cache.size };
+  function invalidate(nameWithOwner) { cache.delete(nameWithOwner); }
+  return { get, invalidate, size: () => cache.size };
+}
+
+/** 기본 runner: gh repo edit <owner/repo> --visibility <public|private> */
+async function defaultEditRunner(nameWithOwner, visibility) {
+  await execFileP('gh', ['repo', 'edit', nameWithOwner, '--visibility', visibility],
+    { timeout: TIMEOUT * 2, windowsHide: true });
+}
+
+/**
+ * 저장소 공개/비공개 전환 (mutating, GitHub 원격 변경). 절대 throw 안 함.
+ * @param {string} nameWithOwner  'owner/repo'
+ * @param {'PUBLIC'|'PRIVATE'} visibility
+ * @returns {Promise<{ok:boolean, error?:string, visibility?:string}>}
+ */
+export async function setVisibility(nameWithOwner, visibility, runner = defaultEditRunner) {
+  if (!isValidNameWithOwner(nameWithOwner)) return { ok: false, error: 'invalid repo' };
+  const v = normalizeVisibility(visibility);
+  if (v !== 'PUBLIC' && v !== 'PRIVATE') return { ok: false, error: 'invalid visibility' };
+  try {
+    await runner(nameWithOwner, v.toLowerCase());
+    return { ok: true, visibility: v };
+  } catch (e) {
+    const msg = (e.stderr || e.message || 'gh repo edit 실패').toString().trim();
+    return { ok: false, error: msg };
+  }
 }
