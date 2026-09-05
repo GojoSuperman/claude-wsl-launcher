@@ -5,7 +5,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { detectEnv } from './env.js';
-import { configPath, writeConfig, validateRoot } from './config.js';
+import { configPath, writeConfig, validateRoot, normalizeRoot } from './config.js';
+import { listDir, candidates as folderCandidates } from './folders.js';
 import { list } from './scanner.js';
 import { hasSession } from './session.js';
 import { resolveProject } from './paths.js';
@@ -151,6 +152,14 @@ app.post('/api/github/visibility', async (req, res) => {
 // 스캔 폴더 설정: 조회 / 변경(설정 파일에 저장 + 즉시 적용). PROJECTS_ROOT 환경변수가 있으면 변경 불가(env 우선).
 app.get('/api/config', (req, res) => {
   res.json({ ok: true, projectsRoot: env.projectsRoot, source: env.projectsRootSource, home: env.home });
+});
+// 폴더 선택창: 하위 폴더 목록(읽기 전용) / 프로젝트 폴더 후보
+app.get('/api/folders', (req, res) => {
+  const p = normalizeRoot(req.query?.path, env.home) || env.home;
+  res.json(listDir(p));
+});
+app.get('/api/folders/candidates', (req, res) => {
+  res.json({ ok: true, candidates: folderCandidates(env.home) });
 });
 app.post('/api/config', (req, res) => {
   try {

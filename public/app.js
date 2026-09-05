@@ -1,6 +1,7 @@
 // public/app.js
 import { t, getLang, setLang } from './i18n.js';
 import { dialogConfirm, dialogAlert, dialogPrompt } from './dialog.js';
+import { pickFolder } from './folder-picker.js';
 
 const grid = document.getElementById('grid');
 const banner = document.getElementById('banner');
@@ -47,7 +48,7 @@ async function loadRoot() {
 }
 
 async function changeRoot() {
-  const raw = await dialogPrompt(t('rootPrompt'), { value: shortPath(rootInfo.projectsRoot || ''), placeholder: '~/dev' });
+  const raw = await pickFolder({ current: rootInfo.projectsRoot || '', home: rootInfo.home });
   if (raw === null || !raw.trim()) return;
   hideBanner();
   try {
