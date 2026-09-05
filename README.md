@@ -66,6 +66,7 @@ bash scripts/install-shortcut.sh
 - **서버 종료 버튼**: 헤더에서 로컬 서버를 종료.
 - **원격 받기**: 업스트림 있는 카드에서 `git fetch` 후 `↓N 뒤짐`이면 `git pull --ff-only`.
 - **새 프로젝트**: `~/projects/<이름>` 폴더 생성 + `git init`.
+- **이름 변경**: 카드의 `✏️ 이름 변경` → 폴더 이름 변경 + claude 대화 이력 폴더도 함께 이동(`--continue` 유지) + origin 이 GitHub 면 `gh repo rename` 으로 저장소 이름·remote URL 갱신(gh CLI 로그인 필요, 실패 시 로컬만 변경되고 경고 표시). 실행 중인 프로젝트는 거부.
 - **다국어 (i18n)**: 헤더에서 한국어 · English · 日本語 전환 (선택 기억됨).
 - **인앱 도움말**: 헤더 `❓ 도움말` 버튼 또는 `?` 키로 사용법 모달.
 - **스캔 폴더 지정**: `PROJECTS_ROOT` 로 기본 `~/projects` 대신 원하는 폴더 스캔.
