@@ -43,6 +43,35 @@ offer_fix() {
   fi
 }
 
+# nvm 공식 설치 스크립트를 파일로 받아 실행(파이프 실행 회피) → nvm 로드 → Node LTS 설치 + default 지정
+install_nvm_and_node() {
+  local ver="v0.40.1" tmp
+  tmp="$(mktemp)"
+  if ! curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${ver}/install.sh" -o "$tmp"; then
+    echo "  nvm 설치 스크립트 다운로드 실패 (네트워크 확인)" >&2; rm -f "$tmp"; return 1
+  fi
+  local log="${tmp}.log"
+  # 위에서 NVM_DIR 을 export 해 둔 상태라 폴더가 없으면 nvm 설치 스크립트가 거부한다 → 먼저 만든다
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  mkdir -p "$NVM_DIR"
+  # PROFILE=/dev/null: rc 파일은 아래서 직접 처리. 실패하면 로그 꼬리를 보여준다(조용히 죽지 않게).
+  if ! PROFILE=/dev/null bash "$tmp" >"$log" 2>&1; then
+    echo "  nvm 설치 스크립트 실패:" >&2; tail -n 5 "$log" >&2; rm -f "$tmp" "$log"; return 1
+  fi
+  rm -f "$tmp"
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # shellcheck source=/dev/null
+  if ! . "$NVM_DIR/nvm.sh" >>"$log" 2>&1; then echo "  nvm 로드 실패 ($NVM_DIR/nvm.sh)" >&2; tail -n 5 "$log" >&2; rm -f "$log"; return 1; fi
+  if ! nvm install --lts >>"$log" 2>&1; then echo "  Node LTS 설치 실패:" >&2; tail -n 5 "$log" >&2; rm -f "$log"; return 1; fi
+  rm -f "$log"
+  nvm alias default 'lts/*' >/dev/null 2>&1 || true
+  # 새 터미널에서도 nvm 이 보이도록 ~/.bashrc 에 로드 구문 추가(이미 있으면 생략)
+  if ! grep -qs 'NVM_DIR' "$HOME/.bashrc" 2>/dev/null; then
+    printf '\n# nvm (Claude WSL Launcher setup 이 추가)\nexport NVM_DIR="$HOME/.nvm"\n[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' >> "$HOME/.bashrc"
+  fi
+  echo "  nvm + Node $(node -v) 설치됨 ($NVM_DIR)"
+}
+
 FAIL=0
 WARN=0
 ok()   { printf '  \xe2\x9c\x85 %s\n' "$1"; }
@@ -107,7 +136,15 @@ else
   if command -v nvm >/dev/null 2>&1; then
     offer_fix "최신 Node(LTS)를 설치할까요?" nvm install --lts
   else
-    hint "먼저 nvm 설치가 필요해요 (SETUP 3번). nvm 자동설치는 Track 2 부트스트랩에서 다룹니다."
+    hint "nvm(Node 버전 관리자)이 없어요. 공식 설치 스크립트로 nvm + 최신 Node(LTS)를 받을 수 있어요."
+    offer_fix "nvm 을 설치하고 최신 Node(LTS)를 받을까요? (https://github.com/nvm-sh/nvm 공식 스크립트, ~/.nvm 에 설치)" install_nvm_and_node
+  fi
+  # 방금 설치됐으면 이후 점검(claude·의존성)이 같은 셸에서 node 를 보도록 다시 로드
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$NVM_DIR/nvm.sh" >/dev/null 2>&1 && nvm use default >/dev/null 2>&1 && NVM_LOADED=1
+    hash -r 2>/dev/null || true
+    command -v node >/dev/null 2>&1 && is_node_ge "$(node -v 2>/dev/null)" 20 && { ok "Node $(node -v) (방금 설치됨)"; FAIL=$((FAIL - 1)); }
   fi
 fi
 
@@ -128,6 +165,14 @@ case "$(classify_claude "$CLAUDE_PATH")" in
   native)
     ok "claude (리눅스 네이티브): $CLAUDE_PATH  ($(claude --version 2>&1 | head -1))" ;;
 esac
+# 방금 설치됐으면 실패 집계에서 제외 (Node 와 같은 규칙)
+if [ "$(classify_claude "$CLAUDE_PATH")" != native ]; then
+  hash -r 2>/dev/null || true
+  NEW_CLAUDE="$(command -v claude 2>/dev/null || true)"
+  if [ "$(classify_claude "$NEW_CLAUDE")" = native ]; then
+    ok "claude 설치됨: $NEW_CLAUDE  ($(claude --version 2>&1 | head -1))"; FAIL=$((FAIL - 1))
+  fi
+fi
 
 # [4b] GitHub CLI (선택) — 카드 '이름 변경' 이 GitHub 저장소 이름까지 바꿀 때만 필요
 if command -v gh >/dev/null 2>&1; then
