@@ -3,7 +3,7 @@
 #
 # 동작:
 #   - 서버를 백그라운드로 기동(창이 닫혀도 유지) 후 포트 헬스체크
-#   - 성공 → 기본 브라우저만 열고 이 창은 닫힘 (별도 터미널 창 없음)
+#   - 성공 → 브라우저만 열고 이 창은 닫힘 (Chrome 있으면 앱 모드 독립 창, 없으면 기본 브라우저)
 #   - 실패 → 서버 로그를 보여주며 창을 유지 (눈먼 채 끝나지 않게)
 #   - 이미 떠 있으면 재기동 없이 브라우저만
 #
@@ -20,10 +20,52 @@ PORT_END=$((PORT + 9))            # 서버는 PORT..PORT+9 범위에서 폴백 �
 LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/project-launcher"
 LOG="${LOG_DIR}/server.log"
 
-# 기본 브라우저로 열기 (테스트 시 LAUNCHER_NO_BROWSER=1 로 생략). $1 = 포트
+# chrome.exe 경로 탐지 (하드코딩 금지 — 데스크탑/노트북 양쪽 동작). 없으면 빈 문자열.
+find_chrome() {
+  local p winuser
+  for p in \
+    "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" \
+    "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe"; do
+    [ -f "$p" ] && { printf '%s' "$p"; return 0; }
+  done
+  # 사용자 로컬(AppData) 설치 폴백 — Windows 사용자명은 PC마다 다르므로 런타임 조회
+  winuser="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
+  if [ -n "$winuser" ]; then
+    p="/mnt/c/Users/${winuser}/AppData/Local/Google/Chrome/Application/chrome.exe"
+    [ -f "$p" ] && { printf '%s' "$p"; return 0; }
+  fi
+  return 1
+}
+
+# powershell.exe 경로 (비대화형/스냅샷 셸엔 PATH 에 없어 ENOENT 날 수 있음 → 절대경로 폴백).
+# powershell.exe 는 System32 직속이 아니라 WindowsPowerShell\v1.0 하위에 있다.
+resolve_pwsh() {
+  command -v powershell.exe >/dev/null 2>&1 && { echo "powershell.exe"; return 0; }
+  local p="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+  [ -f "$p" ] && { echo "$p"; return 0; }
+  return 1
+}
+
+# 브라우저로 열기 (테스트 시 LAUNCHER_NO_BROWSER=1 로 생략). $1 = 포트
+# Chrome 앱 모드(--app)로 주소창·탭·메뉴 없는 독립 창을 띄운다.
+# 핵심: chrome 을 Start-Process 로 Windows 가 직접(분리된 채) 띄우게 한다.
+#   - WSL 함정: interop 으로 띄운 chrome 을 setsid 로 분리해도, 단축키의 transient
+#     WSL 세션이 닫히는 순간 함께 죽는다(2026-06-05 실측). explorer.exe 가 멀쩡했던 건
+#     URL 만 Windows 셸에 넘기고 실제 브라우저는 Windows 가 소유하기 때문.
+#   - 그래서 Start-Process(=Windows 소유)로 띄워야 세션 종료와 무관하게 창이 유지된다.
+# 실패(미설치/조회불가)하면 explorer.exe(기본 브라우저 일반 탭)로 폴백 → 최소한 대시보드는 뜬다.
 open_browser() {
   [ -n "${LAUNCHER_NO_BROWSER:-}" ] && return 0
-  explorer.exe "http://localhost:${1}" >/dev/null 2>&1 || true
+  local url="http://localhost:${1}" chrome chrome_win pwsh
+  if chrome="$(find_chrome)" && pwsh="$(resolve_pwsh)"; then
+    chrome_win="$(wslpath -w "$chrome")"
+    if "$pwsh" -NoProfile -Command \
+         "Start-Process -FilePath '${chrome_win}' -ArgumentList '--app=${url}'" \
+         >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  explorer.exe "$url" >/dev/null 2>&1 || true
 }
 
 # PORT..PORT_END 중 "우리 대시보드"(health 마커)가 떠 있는 첫 포트를 echo. (curl 무의존 — /dev/tcp)

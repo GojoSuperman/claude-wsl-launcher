@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { status, aheadBehind } from '../server/git.js';
+import { status, aheadBehind, parseOriginRepo } from '../server/git.js';
 
 function tmpDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -151,4 +151,15 @@ test('aheadBehind: 업스트림 없으면 {0,0}', async () => {
   initRepo(d);
   commit(d, 'a.txt', 'first');
   assert.deepEqual(await aheadBehind(d), { ahead: 0, behind: 0 });
+});
+
+test('parseOriginRepo: https/ssh/.git/non-github/빈값', () => {
+  assert.equal(parseOriginRepo('git@github.com:owner/repo.git'), 'owner/repo');
+  assert.equal(parseOriginRepo('https://github.com/owner/repo.git'), 'owner/repo');
+  assert.equal(parseOriginRepo('https://github.com/owner/repo'), 'owner/repo');
+  assert.equal(parseOriginRepo('https://github.com/owner/repo/'), 'owner/repo');
+  assert.equal(parseOriginRepo('ssh://git@github.com/owner/repo.git'), 'owner/repo');
+  assert.equal(parseOriginRepo('https://gitlab.com/owner/repo.git'), null);
+  assert.equal(parseOriginRepo(''), null);
+  assert.equal(parseOriginRepo(null), null);
 });

@@ -129,6 +129,17 @@ case "$(classify_claude "$CLAUDE_PATH")" in
     ok "claude (리눅스 네이티브): $CLAUDE_PATH  ($(claude --version 2>&1 | head -1))" ;;
 esac
 
+# [4b] GitHub CLI (선택) — 카드 '이름 변경' 이 GitHub 저장소 이름까지 바꿀 때만 필요
+if command -v gh >/dev/null 2>&1; then
+  if gh auth status >/dev/null 2>&1; then
+    ok "gh CLI 로그인됨 (선택 — 이름 변경 시 GitHub 저장소 이름도 함께 변경)"
+  else
+    hint "gh CLI 는 있지만 로그인 안 됨 (선택): 'gh auth login' 하면 이름 변경 시 GitHub 저장소 이름도 바뀌어요."
+  fi
+else
+  hint "gh CLI 없음 (선택): 없어도 동작해요. 이름 변경 시 GitHub 저장소 이름까지 바꾸려면 https://cli.github.com 설치 후 'gh auth login'."
+fi
+
 # [5] 스크립트 줄바꿈 (CRLF 면 bash 가 죽음) ---------------------------------
 echo
 echo "[5/7] 스크립트 줄바꿈 (LF)"
