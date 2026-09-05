@@ -43,13 +43,14 @@ async function originUrl(dir) {
  * GitHub 단계 실패는 warning 으로만 보고하고 로컬 변경은 유지한다 (GitHub 는 옛 이름을 redirect 함).
  * @returns {Promise<{ok:boolean, error?:string, path?:string, github?:string|null, warning?:string}>}
  */
-export async function rename({ projectsRoot, home, name, newName, runGh = defaultRunGh, isRunning = () => false }) {
+export async function rename({ projectsRoot, home, name, newName, runGh = defaultRunGh, isRunning = () => false, isSelf = () => false }) {
   const full = resolveProject(projectsRoot, name);
   if (!full) return { ok: false, error: 'unknown project' };
   if (!isValidName(newName)) return { ok: false, error: 'invalid name' };
   const target = path.join(projectsRoot, newName);
   if (fs.existsSync(target)) return { ok: false, error: 'already exists' };
   if (isRunning(full)) return { ok: false, error: 'project is running' };
+  if (isSelf(full)) return { ok: false, error: 'self' };
 
   // GitHub 정보는 이동 전에 읽어둔다 (이동 후에도 .git 은 같이 가지만 순서를 명확히)
   const repo = parseGithubRepo(await originUrl(full));

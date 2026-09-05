@@ -2,6 +2,7 @@
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { detectEnv } from './env.js';
 import { list } from './scanner.js';
@@ -16,6 +17,11 @@ import { rename as renameProject } from './renamer.js';
 import { createConsoleStream } from './console-stream.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// 이 대시보드 서버 자신의 프로젝트 폴더 — 이름 변경 대상에서 제외(서버가 깨짐)
+const SELF_PATH = fs.realpathSync(path.join(__dirname, '..'));
+function isSelf(full) {
+  try { return fs.realpathSync(full) === SELF_PATH; } catch { return false; }
+}
 // 기본 포트는 잘 안 쓰는 사설 범위로(4173 은 Vite preview 기본값이라 충돌 잦음).
 const PORT = Number(process.env.PORT) || 41730;
 const MAX_PORT_TRIES = 10; // 사용 중이면 41730..41739 순차 시도
@@ -52,6 +58,7 @@ app.get('/api/projects', async (req, res) => {
         hasSession: hasSession(env.home, p.path),
         git: await gitStatus(p.path),
         running: isRunning(runSet, p.path),
+        self: isSelf(p.path),
       }))
     );
     res.json({ projects });
@@ -117,6 +124,7 @@ app.post('/api/projects/rename', async (req, res) => {
       name: req.body?.name,
       newName: req.body?.newName,
       isRunning: (full) => isRunning(runSet, full),
+      isSelf,
     });
     res.json(r);
   } catch (e) {

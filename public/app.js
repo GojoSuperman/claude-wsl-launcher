@@ -101,6 +101,11 @@ function renderCard(p) {
   renameBtn.textContent = t('rename');
   renameBtn.title = t('renameTitle');
   renameBtn.addEventListener('click', () => doRename(p.name, renameBtn));
+  if (p.running || p.self) {
+    // 실행 중이거나 이 대시보드 서버 자신의 폴더 — 옮기면 세션/서버가 깨지므로 미리 막는다
+    renameBtn.disabled = true;
+    renameBtn.title = p.self ? t('renameSelfBlocked') : t('renameRunningBlocked');
+  }
   actions.appendChild(renameBtn);
 
   if (p.git && p.git.isGit && p.git.hasUpstream) {
