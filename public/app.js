@@ -255,6 +255,8 @@ async function doCreate() {
 }
 
 async function doRename(name, btn) {
+  // 다른 claude 창(다른 폴더에서 띄운 세션)이 이 폴더를 수정 중이면 프로세스로 감지 못 함 → 사용자 확인
+  if (!window.confirm(t('renameConfirm', name))) return;
   const raw = window.prompt(t('renamePrompt', name), name);
   if (raw === null) return;
   const newName = raw.trim();
