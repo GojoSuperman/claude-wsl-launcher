@@ -50,12 +50,20 @@ install_nvm_and_node() {
   if ! curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${ver}/install.sh" -o "$tmp"; then
     echo "  nvm 설치 스크립트 다운로드 실패 (네트워크 확인)" >&2; rm -f "$tmp"; return 1
   fi
-  PROFILE=/dev/null bash "$tmp" >/dev/null 2>&1 || { rm -f "$tmp"; return 1; }   # PROFILE=/dev/null: rc 파일은 아래서 직접 처리
+  local log="${tmp}.log"
+  # 위에서 NVM_DIR 을 export 해 둔 상태라 폴더가 없으면 nvm 설치 스크립트가 거부한다 → 먼저 만든다
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  mkdir -p "$NVM_DIR"
+  # PROFILE=/dev/null: rc 파일은 아래서 직접 처리. 실패하면 로그 꼬리를 보여준다(조용히 죽지 않게).
+  if ! PROFILE=/dev/null bash "$tmp" >"$log" 2>&1; then
+    echo "  nvm 설치 스크립트 실패:" >&2; tail -n 5 "$log" >&2; rm -f "$tmp" "$log"; return 1
+  fi
   rm -f "$tmp"
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   # shellcheck source=/dev/null
-  . "$NVM_DIR/nvm.sh" >/dev/null 2>&1 || return 1
-  nvm install --lts >/dev/null 2>&1 || return 1
+  if ! . "$NVM_DIR/nvm.sh" >>"$log" 2>&1; then echo "  nvm 로드 실패 ($NVM_DIR/nvm.sh)" >&2; tail -n 5 "$log" >&2; rm -f "$log"; return 1; fi
+  if ! nvm install --lts >>"$log" 2>&1; then echo "  Node LTS 설치 실패:" >&2; tail -n 5 "$log" >&2; rm -f "$log"; return 1; fi
+  rm -f "$log"
   nvm alias default 'lts/*' >/dev/null 2>&1 || true
   # 새 터미널에서도 nvm 이 보이도록 ~/.bashrc 에 로드 구문 추가(이미 있으면 생략)
   if ! grep -qs 'NVM_DIR' "$HOME/.bashrc" 2>/dev/null; then
