@@ -70,7 +70,7 @@ bash scripts/setup.sh
 
 - 모든 질문은 그냥 Enter 를 치면 "아니요" 입니다. 건너뛴 것은 나중에 다시 `bash scripts/setup.sh` 로 이어서 할 수 있습니다.
 - 이미 쓰던 프로젝트 폴더(`~/dev`, `~/work` 등)가 있으면 후보 목록에 저장소 수와 함께 뜹니다. 번호만 고르면 됩니다. 나중에 대시보드 상단 **[변경]** 으로 바꿀 수 있습니다.
-- 질문 없이 끝내려면(AI 에이전트·스크립트): `bash scripts/setup.sh --yes` — 전부 '예', 폴더는 저장소가 가장 많은 후보 자동 선택.
+- 질문 없이 끝내려면(AI 에이전트·스크립트): `bash scripts/setup.sh --yes` — 전부 '예', 폴더는 저장소가 가장 많은 후보 자동 선택. 키보드 입력이 없는 환경이면 `--yes` 를 안 붙여도 자동으로 이 모드가 됩니다.
 - 폴더를 직접 지정하려면: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
 - 단축키 이름을 바꾸려면: `SHORTCUT_NAME='내 런처' bash scripts/setup.sh` (기본 `Claude WSL Launcher`).
 - 마지막에 `✅ 설치 완료` 와 접속 주소가 보이면 끝입니다.

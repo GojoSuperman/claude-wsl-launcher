@@ -18,7 +18,7 @@ bash scripts/setup.sh
 `setup.sh` checks Node, claude and the dependencies, offers to install whatever is missing, **finds the folders under your home that hold git repositories and lets you pick your projects folder**, then creates a desktop shortcut. When it finishes, **double-click the shortcut** (it opens an app-style window if Chrome is installed, otherwise your default browser; or run `npm start` and open http://127.0.0.1:41730).
 
 - You can change the projects folder any time with **[Change]** at the top of the dashboard (saved to `~/.config/project-launcher/config.json`). To set it explicitly: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
-- **Letting an AI agent such as Claude Code install it**: `bash scripts/setup.sh --yes` answers every question with yes and picks the candidate folder with the most repositories. Keep the tool itself in your home (`~`), **not inside the projects folder**.
+- **Letting an AI agent such as Claude Code install it**: plain `bash scripts/setup.sh` is enough. When no keyboard input is available it switches to `--yes` mode automatically, answers every question with yes and picks the candidate folder with the most repositories. Keep the tool itself in your home (`~`), **not inside the projects folder**.
 - Prefer to check each step yourself? → **[Setup Guide](docs/SETUP.en.md)**
 
 ## Requirements
