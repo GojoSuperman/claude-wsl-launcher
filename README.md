@@ -15,9 +15,10 @@ cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd 
 bash scripts/setup.sh
 ```
 
-`setup.sh` 가 Node·claude·의존성을 점검해 빠진 것은 물어보고 설치하고, 바탕화면 단축키까지 만들어 줍니다. 끝나면 **단축키를 더블클릭**하세요 (Chrome 이 있으면 주소창 없는 앱 창으로, 없으면 기본 브라우저로 열립니다. 또는 `npm start` 후 http://127.0.0.1:41730).
+`setup.sh` 가 Node·claude·의존성을 점검해 빠진 것은 물어보고 설치하고, **홈 아래에서 git 저장소가 모여 있는 폴더를 찾아 프로젝트 폴더로 고르게 한 뒤**, 바탕화면 단축키까지 만들어 줍니다. 끝나면 **단축키를 더블클릭**하세요 (Chrome 이 있으면 주소창 없는 앱 창으로, 없으면 기본 브라우저로 열립니다. 또는 `npm start` 후 http://127.0.0.1:41730).
 
-- 스캔 폴더 기본값은 `~/projects` 입니다. 다른 폴더를 쓰려면 `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
+- 프로젝트 폴더는 나중에 대시보드 상단 **[변경]** 으로 언제든 바꿀 수 있습니다 (`~/.config/project-launcher/config.json` 에 저장). 직접 지정하려면 `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
+- **Claude Code 같은 AI 에이전트에게 설치를 맡길 때**: `bash scripts/setup.sh --yes` — 질문 없이 전부 '예'로 진행하고 프로젝트 폴더는 저장소가 가장 많은 후보를 자동 선택합니다. 이 도구 자체는 `~/projects` 같은 **프로젝트 폴더 안이 아니라 홈(`~`)에** 두세요.
 - 단계별로 확인하며 설치하고 싶다면 → **[설치 가이드](docs/SETUP.ko.md)**
 
 ## 요구사항
@@ -47,6 +48,7 @@ distro 이름·홈·바탕화면 경로는 **런타임에 감지**하므로 PC �
 - **GitHub 공개/비공개 표시·전환**: origin 이 GitHub 인 카드에 `owner/repo` 와 **공개/비공개** 배지 (gh CLI 로그인 시. 없으면 `?`). 배지를 클릭하면 확인창 후 `gh repo edit --visibility` 로 전환.
 - **라이트/다크 테마**: 헤더에서 자동(Windows 설정 따름) · ☀️ · 🌙 전환 (선택 기억됨).
 - **다국어**: 한국어 · English · 日本語 (선택 기억됨). **인앱 도움말**: `❓ 도움말` 버튼 또는 `?` 키.
+- **프로젝트 폴더 선택·변경**: 설치 때 후보를 찾아 고르고, 대시보드 상단 [변경] 으로 언제든 교체. 카드가 하나도 없으면 배너에서 바로 바꿀 수 있음. 우선순위는 `PROJECTS_ROOT` 환경변수 > 설정 파일 > `~/projects`.
 - **포트 자동 폴백**: 기본 `41730` 이 사용 중이면 `41731~41739` 로 이동. `PORT=5000 npm start` 로 지정 가능.
 
 ## 왜 이 도구인가?

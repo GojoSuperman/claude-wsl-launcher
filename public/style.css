@@ -91,3 +91,9 @@ body.drawer-open.drawer-collapsed { padding-bottom: calc(32px + 1rem); }
 .dlg-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: .6rem; }
 .dlg-actions button.ghost { background: transparent; color: inherit; }
 .dlg-actions button.danger { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+
+/* 스캔 폴더 표시줄 */
+.root-line { font-size: .82rem; opacity: .8; margin: -.25rem 0 .75rem; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.root-line code { background: #8882; padding: .1rem .4rem; border-radius: 4px; word-break: break-all; }
+.root-line button.small, .banner button.small { padding: .15rem .5rem; font-size: .78rem; background: transparent; color: inherit; }
+.banner button.small { border-color: #fff8; color: #fff; margin-left: .6rem; }
