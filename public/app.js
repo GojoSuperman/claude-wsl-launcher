@@ -66,11 +66,37 @@ async function fillVisibility(names) {
     if (!badge) continue;
     const v = data?.visibility?.[name] ?? null;
     badge.classList.remove('public', 'private');
-    if (v === 'PUBLIC') { badge.textContent = t('ghPublic'); badge.classList.add('public'); badge.title = t('ghPublicTitle'); }
-    else if (v === 'PRIVATE' || v === 'INTERNAL') { badge.textContent = t('ghPrivate'); badge.classList.add('private'); badge.title = t('ghPrivateTitle'); }
+    badge.dataset.visibility = v || '';
+    if (v === 'PUBLIC') { badge.textContent = t('ghPublic'); badge.classList.add('public'); badge.title = t('ghPublicTitle') + ' — ' + t('ghToggleHint'); }
+    else if (v === 'PRIVATE' || v === 'INTERNAL') { badge.textContent = t('ghPrivate'); badge.classList.add('private'); badge.title = t('ghPrivateTitle') + ' — ' + t('ghToggleHint'); }
     else { badge.textContent = '?'; badge.title = t('ghVisibilityUnknown'); }
   }
 }
+
+// 배지 클릭 → 공개↔비공개 전환 (확인창 후 gh repo edit). 위임 리스너 하나로 처리.
+grid.addEventListener('click', async (e) => {
+  const badge = e.target.closest('.gh-badge');
+  if (!badge) return;
+  const cur = badge.dataset.visibility;
+  if (cur !== 'PUBLIC' && cur !== 'PRIVATE') return; // 미확인(?)은 전환 불가
+  const name = badge.dataset.name;
+  const next = cur === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
+  if (!window.confirm(t(next === 'PUBLIC' ? 'ghMakePublicConfirm' : 'ghMakePrivateConfirm', name))) return;
+  hideBanner();
+  badge.textContent = '…';
+  try {
+    const res = await fetch('/api/github/visibility/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, visibility: next }),
+    });
+    const data = await res.json();
+    if (!data.ok) showBanner(t('ghToggleFail', data.error ?? t('unknownError')));
+  } catch {
+    showBanner(t('ghToggleFail', t('unknownError')));
+  }
+  fillVisibility([name]);
+});
 
 function relativeTime(iso) {
   if (!iso) return t('noCommit');

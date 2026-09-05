@@ -42,7 +42,7 @@ Distro name, home and desktop paths are **detected at runtime**, so there is not
 - **New project**: creates `~/projects/<name>` and runs `git init`.
 - **Rename project**: renames the folder and moves the claude history folder along (keeps `--continue`). If origin is GitHub, runs `gh repo rename` to rename the repo and update the remote URL (needs gh login; on failure the local folder is still renamed and a warning is shown). The button is disabled for running projects and for this tool's own folder.
 - **Name rule**: new and renamed projects may only use letters, digits, `-`, `_` and `.` (GitHub repo rule).
-- **GitHub public/private badge**: cards whose origin is GitHub show `owner/repo` and a **public/private** badge (with gh login; `?` otherwise).
+- **GitHub public/private badge and switch**: cards whose origin is GitHub show `owner/repo` and a **public/private** badge (with gh login; `?` otherwise). Click the badge to switch via `gh repo edit --visibility` after a confirmation.
 - **Light/dark theme**: Auto (follows Windows) · ☀️ · 🌙 in the header (remembered).
 - **Server console (bottom panel)**: this server's log, streamed live (read-only).
 - **Auto shutdown**: closing the dashboard window stops the server after about 10 seconds (`AUTO_SHUTDOWN=0` disables). The **Shut down** button in the header stops it immediately.
