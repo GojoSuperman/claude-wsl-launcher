@@ -7,6 +7,23 @@
 
 ---
 
+## 처음부터 끝까지 — 빈 Windows PC 에서 5단계 (Claude Code 에게 설치 맡기기)
+
+아무것도 없는 PC 라면 이 순서가 가장 짧습니다. 사람이 직접 하는 건 **1·2번과 로그인 한 번**뿐이고, 나머지는 Claude Code 가 합니다.
+
+| 단계 | 어디서 | 할 일 |
+|---|---|---|
+| 1 | **Windows PowerShell(관리자)** | `wsl --install` → 재부팅 → 우분투 첫 실행에서 사용자 이름·비밀번호 만들기 |
+| 2 | **우분투 터미널** | Claude Code 설치: `curl -fsSL https://claude.ai/install.sh \| bash` (Node 없이도 됨) → `claude` 실행해 **로그인** |
+| 3 | 우분투 터미널 | `cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd claude-wsl-launcher && claude` |
+| 4 | **Claude Code 안에서** | **"설치해줘"** — README 를 읽고 `bash scripts/setup.sh` 를 돌립니다. 키보드 입력이 없는 환경이라 자동으로 전부 '예'. Node/nvm 이 없어도 설치하고, 프로젝트 폴더를 찾아 고르고, 바탕화면 단축키까지 만듭니다 |
+| 5 | 바탕화면 | 단축키 더블클릭 |
+
+- 3번의 clone 도 Claude Code 에게 시켜도 됩니다: `cd ~ && claude` 로 홈에서 띄운 뒤 "이 주소를 클론하고 설치해줘". 런처는 `~/projects` 같은 **프로젝트 폴더 안이 아니라 홈**에 두세요.
+- 아래 0~7번은 같은 과정을 한 단계씩 확인하며 손으로 할 때의 설명입니다.
+
+---
+
 ## 0. 이 도구가 뭔가요? / 준비물
 
 `~/projects` 폴더 안의 프로젝트들을 웹 화면(대시보드)에서 보고, 버튼 한 번으로 그 폴더에서 **Claude Code** 를 새 터미널 창에 띄워주는 개인용 로컬 도구입니다.
@@ -171,8 +188,9 @@ nvm install --lts
 **Claude Code CLI**
 
 ```bash
-claude --version   # 없으면:
-npm install -g @anthropic-ai/claude-code
+claude --version   # 없으면 (둘 중 하나):
+curl -fsSL https://claude.ai/install.sh | bash   # 공식 설치기 — Node 없이도 됨 (권장)
+npm install -g @anthropic-ai/claude-code          # 또는 npm (Node 필요)
 # 설치 후 claude 로 한 번 로그인. 최신 설치 방법은 Claude Code 공식 문서 우선.
 ```
 

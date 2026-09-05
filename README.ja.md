@@ -19,7 +19,7 @@ bash scripts/setup.sh
 
 - プロジェクトフォルダーはダッシュボード上部の **[変更]** でいつでも変えられます(`~/.config/project-launcher/config.json` に保存)。直接指定するには `PROJECTS_ROOT=~/dev bash scripts/setup.sh`。
 - **Claude Code などの AI エージェントにインストールを任せる場合**: `bash scripts/setup.sh` だけで十分です。キーボード入力が無い環境を検出すると自動的に `--yes` モードになり、すべての質問に「はい」で進み、プロジェクトフォルダーはリポジトリが最も多い候補を自動選択します。ツール自体は `~/projects` のような**プロジェクトフォルダーの中ではなくホーム(`~`)に**置いてください。
-- 一段階ずつ確認しながら進めたい場合 → **[セットアップガイド](docs/SETUP.ja.md)**
+- 一段階ずつ確認しながら進めたい場合 → **[セットアップガイド](docs/SETUP.ja.md)**。何も無い PC から始めるなら → [ゼロから起動まで 5 ステップ](docs/SETUP.ja.md#ゼロから起動まで--何もない-windows-pc-で-5-ステップ-claude-code-にインストールを任せる)
 
 ## 動作要件
 

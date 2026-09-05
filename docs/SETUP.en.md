@@ -7,6 +7,23 @@ In a hurry? The two lines in the [README Quick Start](../README.en.md#quick-star
 
 ---
 
+## Zero to launch — 5 steps on a blank Windows PC (let Claude Code install it)
+
+On a machine with nothing installed, this is the shortest path. You do **steps 1–2 and one login** yourself; Claude Code does the rest.
+
+| Step | Where | What |
+|---|---|---|
+| 1 | **Windows PowerShell (admin)** | `wsl --install` → reboot → create a username/password on Ubuntu's first run |
+| 2 | **Ubuntu terminal** | Install Claude Code: `curl -fsSL https://claude.ai/install.sh \| bash` (no Node needed) → run `claude` once and **log in** |
+| 3 | Ubuntu terminal | `cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd claude-wsl-launcher && claude` |
+| 4 | **Inside Claude Code** | Say **"install this"** — it reads the README and runs `bash scripts/setup.sh`. With no keyboard input available it auto-answers yes to everything, installs Node/nvm if missing, picks your projects folder, and creates the desktop shortcut |
+| 5 | Desktop | Double-click the shortcut |
+
+- You can hand step 3's clone to Claude Code too: start it from home with `cd ~ && claude` and say "clone this URL and install it". Keep the launcher in your **home, not inside a projects folder** such as `~/projects`.
+- Sections 0–7 below explain the same process step by step for doing it by hand.
+
+---
+
 ## 0. What is this tool? / What you need
 
 A personal local tool that shows the projects inside `~/projects` on a web page (dashboard) and opens **Claude Code** in a new terminal window for that folder with one button.
@@ -171,8 +188,9 @@ nvm install --lts
 **Claude Code CLI**
 
 ```bash
-claude --version   # if missing:
-npm install -g @anthropic-ai/claude-code
+claude --version   # if missing (either one):
+curl -fsSL https://claude.ai/install.sh | bash   # official installer — no Node needed (recommended)
+npm install -g @anthropic-ai/claude-code          # or via npm (needs Node)
 # run claude once to log in. Always prefer the official Claude Code docs for the latest install method.
 ```
 
