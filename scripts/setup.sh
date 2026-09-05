@@ -36,6 +36,14 @@ echo
 bash "$SCRIPT_DIR/doctor.sh" --fix
 DOCTOR_RC=$?
 
+# doctor 가 방금 nvm/Node 를 설치했을 수 있으니 이 셸에도 로드 (npm install·설정 저장이 node 를 쓴다)
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$NVM_DIR/nvm.sh" >/dev/null 2>&1 && nvm use default >/dev/null 2>&1
+  hash -r 2>/dev/null || true
+fi
+
 # [2] 의존성 보장 (doctor 에서 '아니요' 했거나 dry-run 이면 여기서 한 번 더) ----
 echo
 if [ -d "$PROJ/node_modules" ]; then
@@ -86,15 +94,22 @@ CHOSEN="${CHOSEN/#\~/$HOME}"
 case "$CHOSEN" in
   /mnt/[a-zA-Z]/*) echo "  ⚠️  Windows 쪽 폴더(/mnt/…)예요. 동작은 하지만 5~10배 느리고 claude 실행에 함정이 있어요. 가능하면 WSL 홈 아래를 권장." ;;
 esac
-if [ -z "${DOCTOR_DRY_RUN:-}" ] && command -v node >/dev/null 2>&1; then
-  mkdir -p "$(dirname "$CONFIG_FILE")"
-  node -e '
-    const fs = require("fs"); const [file, root] = process.argv.slice(1);
-    let cfg = {}; try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); } catch {}
-    cfg.projectsRoot = root; fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
-  ' "$CONFIG_FILE" "$CHOSEN" && echo "  저장됨: ${CONFIG_FILE/#$HOME/~}  →  projectsRoot = ${CHOSEN/#$HOME/~}"
-else
+if [ -n "${DOCTOR_DRY_RUN:-}" ]; then
   echo "  (dry-run) 설정 저장 생략: $CONFIG_FILE ← $CHOSEN"
+else
+  mkdir -p "$(dirname "$CONFIG_FILE")"
+  if command -v node >/dev/null 2>&1; then
+    node -e '
+      const fs = require("fs"); const [file, root] = process.argv.slice(1);
+      let cfg = {}; try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); } catch {}
+      cfg.projectsRoot = root; fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
+    ' "$CONFIG_FILE" "$CHOSEN"
+  else
+    # node 없이도 저장 (설치 실패 대비): projectsRoot 하나만 기록. \ 와 " 는 JSON 이스케이프
+    esc="$(printf '%s' "$CHOSEN" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+    printf '{\n  "projectsRoot": "%s"\n}\n' "$esc" > "$CONFIG_FILE"
+  fi
+  echo "  저장됨: ${CONFIG_FILE/#$HOME/~}  →  projectsRoot = ${CHOSEN/#$HOME/~}"
 fi
 PROJECTS_ROOT_SHOW="${CHOSEN/#$HOME/~}"
 
