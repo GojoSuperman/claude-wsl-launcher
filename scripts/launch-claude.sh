@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # 새 WSL 창에서 claude 를 띄우는 런처 스크립트.
 # server/launcher.js 가 다음 형태로 호출한다:
-#   powershell Start-Process wsl.exe ... -- bash <이 스크립트> [--continue]
+#   cmd /c start "" wsl.exe ... -- bash <이 스크립트> [--continue]
 #
 # 왜 인라인 bash 명령이 아니라 스크립트 파일인가:
-#   단축키 → 대시보드 서버(node) → powershell → Start-Process wsl.exe 의 다단 호출을
+#   단축키 → 대시보드 서버(node) → cmd start → wsl.exe 의 다단 호출을
 #   거치면, 인라인 bash 명령의 따옴표/$변수/복합문이 중간 계층에서 망가진다
 #   (예: `export PATH=...:$PATH` 가 효과 없이 사라짐). 게다가 그렇게 띄운 `bash -lic`
 #   셸은 비대화형으로 취급되어 ~/.bashrc 상단의 비대화형 가드(`case $- in *i*) ;; *) return`)

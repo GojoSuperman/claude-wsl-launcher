@@ -29,9 +29,9 @@ find_chrome() {
     [ -f "$p" ] && { printf '%s' "$p"; return 0; }
   done
   # 사용자 로컬(AppData) 설치 폴백 — Windows 사용자명은 PC마다 다르므로 런타임 조회
-  local pwsh
-  pwsh="$(resolve_pwsh)" || return 1
-  winuser="$("$pwsh" -NoProfile -Command '$env:USERNAME' 2>/dev/null | tr -d '\r')"
+  local cmdexe
+  cmdexe="$(resolve_cmd)" || return 1
+  winuser="$("$cmdexe" /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
   if [ -n "$winuser" ]; then
     p="/mnt/c/Users/${winuser}/AppData/Local/Google/Chrome/Application/chrome.exe"
     [ -f "$p" ] && { printf '%s' "$p"; return 0; }
@@ -39,31 +39,32 @@ find_chrome() {
   return 1
 }
 
-# powershell.exe 경로 (비대화형/스냅샷 셸엔 PATH 에 없어 ENOENT 날 수 있음 → 절대경로 폴백).
-# powershell.exe 는 System32 직속이 아니라 WindowsPowerShell\v1.0 하위에 있다.
-resolve_pwsh() {
-  command -v powershell.exe >/dev/null 2>&1 && { echo "powershell.exe"; return 0; }
-  local p="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+# cmd.exe 경로 (비대화형/스냅샷 셸엔 PATH 에 없어 ENOENT 날 수 있음 → 절대경로 폴백).
+# powershell 대신 cmd 를 쓰는 이유(2026-09-14 실측): powershell 기동 1.7~2.8초 vs cmd 0.4~0.7초.
+resolve_cmd() {
+  command -v cmd.exe >/dev/null 2>&1 && { echo "cmd.exe"; return 0; }
+  local p="/mnt/c/Windows/System32/cmd.exe"
   [ -f "$p" ] && { echo "$p"; return 0; }
   return 1
 }
 
 # 브라우저로 열기 (테스트 시 LAUNCHER_NO_BROWSER=1 로 생략). $1 = 포트
 # Chrome 앱 모드(--app)로 주소창·탭·메뉴 없는 독립 창을 띄운다.
-# 핵심: chrome 을 Start-Process 로 Windows 가 직접(분리된 채) 띄우게 한다.
+# 핵심: chrome 을 Windows 가 직접(분리된 채) 띄우게 한다.
 #   - WSL 함정: interop 으로 띄운 chrome 을 setsid 로 분리해도, 단축키의 transient
 #     WSL 세션이 닫히는 순간 함께 죽는다(2026-06-05 실측). explorer.exe 가 멀쩡했던 건
 #     URL 만 Windows 셸에 넘기고 실제 브라우저는 Windows 가 소유하기 때문.
-#   - 그래서 Start-Process(=Windows 소유)로 띄워야 세션 종료와 무관하게 창이 유지된다.
+#   - `cmd /c start` 도 Start-Process 와 같이 Windows 소유의 분리 프로세스로 띄운다.
+#     powershell(기동 1.7~2.8초) → cmd(0.4~0.7초) 교체로 런처 체감 지연을 줄임(2026-09-14 실측,
+#     세션 종료 후 창 유지 실사용 확인). start 의 첫 "" 는 창 제목 자리채움. 만약 세션 종료 시
+#     창이 함께 죽는 회귀가 보이면 powershell Start-Process 방식으로 되돌릴 것.
 # 실패(미설치/조회불가)하면 explorer.exe(기본 브라우저 일반 탭)로 폴백 → 최소한 대시보드는 뜬다.
 open_browser() {
   [ -n "${LAUNCHER_NO_BROWSER:-}" ] && return 0
-  local url="http://localhost:${1}" chrome chrome_win pwsh
-  if chrome="$(find_chrome)" && pwsh="$(resolve_pwsh)"; then
+  local url="http://localhost:${1}" chrome chrome_win cmdexe
+  if chrome="$(find_chrome)" && cmdexe="$(resolve_cmd)"; then
     chrome_win="$(wslpath -w "$chrome")"
-    if "$pwsh" -NoProfile -Command \
-         "Start-Process -FilePath '${chrome_win}' -ArgumentList '--app=${url}'" \
-         >/dev/null 2>&1; then
+    if "$cmdexe" /c start "" "$chrome_win" "--app=${url}" >/dev/null 2>&1; then
       return 0
     fi
   fi
