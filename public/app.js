@@ -551,10 +551,17 @@ function renderImportList() {
 }
 
 // gh 없음/목록 에러 → 안내 + "URL 직접 입력" 폴백
-function renderImportFallback(errMsg) {
+// code = 서버가 분류한 원인('gh-missing'|'gh-auth'|'gh-network'|null). 아는 원인이면
+// '무엇을 하면 되는지'를 번역해 보여주고, 모르면 gh 원문을 그대로 보여준다.
+// (원문은 영어라 비개발자에겐 안 읽히지만, 모르는 오류를 숨기는 편이 더 나쁘다.)
+function renderImportFallback(errMsg, code) {
   importRepos = [];
   importList.innerHTML = '';
-  setImportStatus(t('importError', errMsg ?? ''));
+  const known = code === 'gh-missing' ? t('ghMissing')
+    : code === 'gh-auth' ? t('ghAuth')
+    : code === 'gh-network' ? t('ghNetwork')
+    : null;
+  setImportStatus(known ?? t('importError', errMsg ?? ''));
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'import-fallback';
@@ -617,7 +624,7 @@ async function openImportModal() {
       importRepos = data.repos || [];
       renderImportList();
     } else {
-      renderImportFallback(data.error);
+      renderImportFallback(data.error, data.code);
     }
   } catch {
     if (importIsOpen()) renderImportFallback('');

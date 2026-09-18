@@ -261,7 +261,7 @@ app.post('/api/projects/delete', async (req, res) => {
 app.get('/api/github/repos', async (req, res) => {
   try {
     const r = await listRepos();
-    if (!r.ok) { res.json({ ok: false, error: r.error }); return; }
+    if (!r.ok) { res.json({ ok: false, error: r.error, code: r.code }); return; }
     const existing = list(env.projectsRoot).map((d) => d.name);
     res.json({ ok: true, repos: parseRepos(r.raw, existing) });
   } catch (e) {

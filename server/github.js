@@ -7,6 +7,25 @@ const execFileP = promisify(execFile);
 const LIST_TIMEOUT = 20000;
 
 /**
+ * gh 실패 원인을 화면에 번역해 보여줄 수 있는 코드로 분류. 순수 함수.
+ * 분류되지 않으면 null → UI 는 원문을 그대로 보여준다.
+ *
+ * 왜 여기서 한국어 문구를 만들지 않는가: 이 앱은 ko/en/ja 를 지원하므로 문구는
+ * 클라이언트 i18n 이 담당한다. 서버는 원인만 알려준다.
+ * @param {string} stderr
+ * @returns {'gh-missing'|'gh-auth'|'gh-network'|null}
+ */
+export function classifyGhError(stderr) {
+  const s = (stderr || '').toString();
+  if (!s.trim()) return null;
+  // 미설치가 최우선 — gh 가 없으면 나머지 판정은 의미가 없다
+  if (/ENOENT|command not found/i.test(s)) return 'gh-missing';
+  if (/gh auth login|GH_TOKEN|authentication token|Bad credentials|HTTP 401/i.test(s)) return 'gh-auth';
+  if (/no such host|connecting to|dial tcp|network is unreachable|timeout/i.test(s)) return 'gh-network';
+  return null;
+}
+
+/**
  * `gh repo list --json ...` 출력(JSON 문자열)을 파싱 → updatedAt 내림차순 정렬 +
  * 각 항목에 imported(=existingNames 에 name 존재) 부착. 순수 함수.
  * 깨진/배열 아닌 입력은 빈 배열.
@@ -37,7 +56,10 @@ export function isValidNameWithOwner(s) {
   return /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(s);
 }
 
-/** `gh repo list` 실행 → {ok:true, raw} | {ok:false, error}. 절대 throw 안 함. */
+/**
+ * `gh repo list` 실행 → {ok:true, raw} | {ok:false, error, code}. 절대 throw 안 함.
+ * code 는 classifyGhError 의 결과(모르면 null) — UI 가 번역된 안내를 띄우는 데 쓴다.
+ */
 export async function listRepos(limit = 200) {
   try {
     const { stdout } = await execFileP('gh',
@@ -46,7 +68,7 @@ export async function listRepos(limit = 200) {
     return { ok: true, raw: stdout };
   } catch (e) {
     const msg = (e.stderr || e.message || 'gh repo list 실패').toString().trim();
-    return { ok: false, error: msg };
+    return { ok: false, error: msg, code: classifyGhError(msg) };
   }
 }
 
