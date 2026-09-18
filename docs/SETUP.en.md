@@ -33,7 +33,7 @@ A personal local tool that shows the projects inside `~/projects` on a web page 
 | **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `cmd.exe` → **no macOS / plain Linux** | Install in step 1 |
 | **Node.js 20+** inside WSL | Runs the server | `setup.sh` offers to install via nvm |
 | **Claude Code CLI** (`claude`) inside WSL | What this tool launches | `setup.sh` offers to install |
-| (optional) **GitHub CLI** (`gh`), logged in | Public/private badge on cards, and "Rename project" renaming the GitHub repo too | Works without it (badge shows `?`, rename is local only) |
+| (optional) **GitHub CLI** (`gh`), logged in | **Import from GitHub**, deleting repositories, the public/private badge, and "Rename project" renaming the GitHub repo too | Everything else works without it (only import/delete are unavailable, badge shows `?`) |
 
 ---
 
@@ -123,6 +123,9 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 | **[Launch claude]** | Opens claude in a **new WSL window** for that folder. Continues the conversation (`--continue`) if history exists, otherwise starts fresh |
 | **[Check remote]** → **[Pull]** | `git fetch`, then `git pull --ff-only` if behind (shown only on cards with an upstream) |
 | **[+ New project]** | Creates `~/projects/<name>` and runs `git init` |
+| **[⬇ Import]** | Searches your GitHub repository list and clones the one you pick (needs gh login). Repositories you already have are marked. If the list cannot be loaded you can switch to **entering a URL manually** |
+| **[Delete]** on a card | Moves the local folder to the trash. A checkbox also **deletes the GitHub repository** (needs gh login). Running projects and the tool's own folder cannot be deleted. If the GitHub delete fails, the local folder is kept |
+| **[Note]** on a card | A one-line note per card (stored in `~/.local/state/project-launcher/notes.json`) |
 | **[✏️ Rename project]** | Renames the folder and moves the claude history folder along. If origin is GitHub, runs `gh repo rename` to update the repo name and remote URL (needs gh login; on failure only the local folder changes and a warning appears). Disabled for running projects and this tool's own folder |
 | **GitHub line** on a card | The origin repo (`owner/repo`) and a **public/private** badge. Shows `?` without gh login. Click the badge to switch after confirming (needs admin permission on the repo) |
 | **Auto · ☀️ · 🌙** | Light/dark theme. Auto follows the Windows setting (remembered) |
