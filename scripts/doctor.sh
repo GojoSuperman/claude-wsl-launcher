@@ -174,15 +174,15 @@ if [ "$(classify_claude "$CLAUDE_PATH")" != native ]; then
   fi
 fi
 
-# [4b] GitHub CLI (선택) — 카드 '이름 변경' 이 GitHub 저장소 이름까지 바꿀 때만 필요
+# [4b] GitHub CLI (선택) — 가져오기·삭제·공개여부 배지·이름 변경(저장소 이름까지)에 필요
 if command -v gh >/dev/null 2>&1; then
   if gh auth status >/dev/null 2>&1; then
-    ok "gh CLI 로그인됨 (선택 — 이름 변경 시 GitHub 저장소 이름도 함께 변경)"
+    ok "gh CLI 로그인됨 (선택 — GitHub 에서 가져오기·삭제·공개여부 배지 사용 가능)"
   else
-    hint "gh CLI 는 있지만 로그인 안 됨 (선택): 'gh auth login' 하면 이름 변경 시 GitHub 저장소 이름도 바뀌어요."
+    hint "gh CLI 는 있지만 로그인 안 됨 (선택): 'gh auth login' 하면 'GitHub 에서 가져오기'·저장소 삭제·공개여부 배지를 쓸 수 있어요."
   fi
 else
-  hint "gh CLI 없음 (선택): 없어도 동작해요. 이름 변경 시 GitHub 저장소 이름까지 바꾸려면 https://cli.github.com 설치 후 'gh auth login'."
+  hint "gh CLI 없음 (선택): 없어도 나머지 기능은 동작해요. 'GitHub 에서 가져오기'·저장소 삭제를 쓰려면 https://cli.github.com 설치 후 'gh auth login'."
 fi
 
 # [5] 스크립트 줄바꿈 (CRLF 면 bash 가 죽음) ---------------------------------
