@@ -21,6 +21,7 @@ import { rename as renameProject } from './renamer.js';
 import { readAll as readNotes, setNote } from './notes.js';
 import { clone as cloneProject } from './cloner.js';
 import { listRepos, cloneRepo, parseRepos, deleteRepo } from './github.js';
+import { check as checkUpdate, update as runUpdate } from './updater.js';
 import { createConsoleStream } from './console-stream.js';
 import { createIdleShutdown } from './idle-shutdown.js';
 
@@ -298,6 +299,23 @@ app.post('/api/projects/rename', async (req, res) => {
 // launcher 가 "이게 우리 대시보드인가"를 식별하는 마커. 실제 바인딩 포트도 알려준다.
 app.get('/api/health', (req, res) => {
   res.json({ app: 'claude-wsl-launcher', port: server?.address()?.port ?? PORT });
+});
+
+// 이 도구 자신의 업데이트. 대상은 항상 SELF_PATH — 클라이언트가 경로를 못 정한다.
+app.get('/api/update/check', async (req, res) => {
+  try {
+    res.json(await checkUpdate(SELF_PATH));
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/update', async (req, res) => {
+  try {
+    res.json(await runUpdate(SELF_PATH));
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 app.post('/api/shutdown', (req, res) => {
