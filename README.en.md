@@ -21,17 +21,40 @@ bash scripts/setup.sh
 - **Letting an AI agent such as Claude Code install it**: plain `bash scripts/setup.sh` is enough. When no keyboard input is available it switches to `--yes` mode automatically, answers every question with yes and picks the candidate folder with the most repositories. Keep the tool itself in your home (`~`), **not inside the projects folder**.
 - Prefer to check each step yourself? → **[Setup Guide](docs/SETUP.en.md)**. Starting from a blank PC? → [Zero to launch in 5 steps](docs/SETUP.en.md#zero-to-launch--5-steps-on-a-blank-windows-pc-let-claude-code-install-it)
 
+## Updating an existing install
+
+**You do not need to clone again.** Your settings (`~/.config/project-launcher/`) and notes (`~/.local/state/project-launcher/`) live outside the repository and are preserved, and the desktop shortcut keeps working as is.
+
+```bash
+cd ~/claude-wsl-launcher   # wherever you installed it
+git pull
+npm install
+```
+
+Then **restart the dashboard.**
+
+> ⚠️ **This is the important part.** If you `git pull` while the dashboard is running, the page (buttons, modals) updates to the new code but **the already-running server is still the old code**, so the new buttons fail with a "server error". Nothing is broken — the server is just stale.
+> Click **[Shut down server]** in the header, then launch the desktop shortcut again.
+
+**To use GitHub import and delete**, sign in to the gh CLI once (everything else works without it):
+
+```bash
+gh auth login
+```
+
+Run `bash scripts/doctor.sh` to verify your setup.
+
 ## Requirements
 
 | Required | Why |
 |---|---|
-| **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `powershell.exe` → macOS and native Linux are not supported |
+| **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `cmd.exe` → macOS and native Linux are not supported |
 | **Node.js 20+** inside WSL | Runs the server (`setup.sh` offers to install it via nvm) |
 | **Claude Code CLI** inside WSL | What this tool launches (`setup.sh` offers to install it) |
 
 | Optional | Used for |
 |---|---|
-| **GitHub CLI (`gh`)**, logged in | The public/private badge on cards, and letting "Rename project" rename the GitHub repo too |
+| **GitHub CLI (`gh`)**, logged in | **Import from GitHub** (your repo list), deleting repositories, the public/private badge on cards, and letting "Rename project" rename the GitHub repo too. Sign in with `gh auth login`. |
 
 Distro name, home and desktop paths are **detected at runtime**, so there is nothing to configure per PC.
 
@@ -41,6 +64,9 @@ Distro name, home and desktop paths are **detected at runtime**, so there is not
 - **Launch claude**: opens claude in a **new WSL window** for that folder (`--continue` when history exists). Native WSL launch, so no repeated "trust this folder?" prompts.
 - **Check remote / Pull**: `git fetch`, then `git pull --ff-only` if behind.
 - **New project**: creates `~/projects/<name>` and runs `git init`.
+- **Import from GitHub**: `⬇ Import` in the header lists your GitHub repositories, searchable, and clones the one you pick (requires gh login). Repositories you already have are marked. You can also paste a GitHub URL directly.
+- **Delete a project**: moves the local folder to the trash, and optionally **deletes the GitHub repository too** (checkbox, requires gh login). Running projects and the tool's own folder cannot be deleted.
+- **Notes**: a one-line note per card so you can tell projects apart (stored in `~/.local/state/project-launcher/notes.json`).
 - **Rename project**: renames the folder and moves the claude history folder along (keeps `--continue`). If origin is GitHub, runs `gh repo rename` to rename the repo and update the remote URL (needs gh login; on failure the local folder is still renamed and a warning is shown). The button is disabled for running projects and for this tool's own folder.
 - **Name rule**: new and renamed projects may only use letters, digits, `-`, `_` and `.` (GitHub repo rule).
 - **GitHub public/private badge and switch**: cards whose origin is GitHub show `owner/repo` and a **public/private** badge (with gh login; `?` otherwise). Click the badge to switch via `gh repo edit --visibility` after a confirmation.
@@ -65,7 +91,7 @@ This tool avoids all of that by always launching in the **correct native WSL win
 ## How it works
 
 - A browser alone cannot start a process on your PC, so a **small local server (Express) running inside WSL** does it.
-- The server scans `~/projects`, reads git status, and calls `powershell.exe` with `Start-Process wsl.exe` to open claude in a **new WSL window**.
+- The server scans `~/projects`, reads git status, and calls `cmd.exe /c start` with `wsl.exe` to open claude in a **new WSL window**.
 - The server tees its own `stdout/stderr` into the `/ws/console` WebSocket for the bottom panel. When every such connection is gone it shuts itself down after a grace period.
 
 ## Security

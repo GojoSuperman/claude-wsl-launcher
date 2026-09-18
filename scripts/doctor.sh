@@ -98,13 +98,13 @@ fi
 # [2] Windows 연동 (서버가 새 창을 띄울 때 필요) ------------------------------
 echo
 echo "[2/7] Windows 연동 (창 띄우기)"
-PS_FALLBACK="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
-if command -v powershell.exe >/dev/null 2>&1; then
-  ok "powershell.exe 접근 가능 (PATH)"
-elif [ -x "$PS_FALLBACK" ]; then
-  ok "powershell.exe 접근 가능 (표준 경로 폴백)"
+CMD_FALLBACK="/mnt/c/Windows/System32/cmd.exe"
+if command -v cmd.exe >/dev/null 2>&1; then
+  ok "cmd.exe 접근 가능 (PATH)"
+elif [ -x "$CMD_FALLBACK" ]; then
+  ok "cmd.exe 접근 가능 (표준 경로 폴백)"
 else
-  bad "powershell.exe 를 찾지 못함 — 'claude 실행' 시 새 창이 안 뜹니다."
+  bad "cmd.exe 를 찾지 못함 — 'claude 실행' 시 새 창이 안 뜹니다."
   hint "WSL interop 가 켜져 있는지 확인하세요 (/etc/wsl.conf 의 [interop] enabled=true)."
 fi
 if command -v wsl.exe >/dev/null 2>&1; then
@@ -174,15 +174,15 @@ if [ "$(classify_claude "$CLAUDE_PATH")" != native ]; then
   fi
 fi
 
-# [4b] GitHub CLI (선택) — 카드 '이름 변경' 이 GitHub 저장소 이름까지 바꿀 때만 필요
+# [4b] GitHub CLI (선택) — 가져오기·삭제·공개여부 배지·이름 변경(저장소 이름까지)에 필요
 if command -v gh >/dev/null 2>&1; then
   if gh auth status >/dev/null 2>&1; then
-    ok "gh CLI 로그인됨 (선택 — 이름 변경 시 GitHub 저장소 이름도 함께 변경)"
+    ok "gh CLI 로그인됨 (선택 — GitHub 에서 가져오기·삭제·공개여부 배지 사용 가능)"
   else
-    hint "gh CLI 는 있지만 로그인 안 됨 (선택): 'gh auth login' 하면 이름 변경 시 GitHub 저장소 이름도 바뀌어요."
+    hint "gh CLI 는 있지만 로그인 안 됨 (선택): 'gh auth login' 하면 'GitHub 에서 가져오기'·저장소 삭제·공개여부 배지를 쓸 수 있어요."
   fi
 else
-  hint "gh CLI 없음 (선택): 없어도 동작해요. 이름 변경 시 GitHub 저장소 이름까지 바꾸려면 https://cli.github.com 설치 후 'gh auth login'."
+  hint "gh CLI 없음 (선택): 없어도 나머지 기능은 동작해요. 'GitHub 에서 가져오기'·저장소 삭제를 쓰려면 https://cli.github.com 설치 후 'gh auth login'."
 fi
 
 # [5] 스크립트 줄바꿈 (CRLF 면 bash 가 죽음) ---------------------------------

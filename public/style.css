@@ -1,11 +1,25 @@
 :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
 body { margin: 0; padding: 1.5rem; }
-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+/* 헤더는 스크롤해도 상단 고정. 본문 패딩(1.5rem)을 음수 마진으로 상쇄해 바를 화면 끝까지 채우고
+   같은 크기의 패딩으로 내용 위치를 복원. 배경(Canvas)은 color-scheme 따라 라이트/다크 자동.
+   z-index 40: 카드 위, 콘솔 드로어(50)·모달(100) 아래 */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 40;
+  background: Canvas;
+  margin: -1.5rem -1.5rem 1rem; padding: 1.5rem 1.5rem .75rem;
+  border-bottom: 1px solid #8884;
+}
 h1 { font-size: 1.25rem; margin: 0; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+/* 그룹 섹션 헤더: 그리드 전체폭 차지해 반응형 흐름을 깨지 않음 */
+.grid-section { grid-column: 1 / -1; font-size: .8rem; font-weight: 600; opacity: .7; margin: .5rem 0 -.25rem; }
+.grid-section:first-child { margin-top: 0; }
 .card { border: 1px solid #8884; border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
-.card .name { font-weight: 600; display: flex; align-items: baseline; gap: .4rem; }
-.card .name-text { word-break: break-all; }
+.card .name { font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .4rem; }
+.card .name-text { overflow-wrap: anywhere; }
+/* 한글 메모(부제) + 이름 행의 ✎ 편집 버튼 */
+.card .note { font-size: .8rem; opacity: .85; overflow-wrap: anywhere; margin-top: -.4rem; }
 .card.is-running { border-color: #2ecc7188; }
 .card .badge-running { color: #2ecc71; font-size: .72rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
 .card .meta { font-size: .8rem; opacity: .7; }
@@ -13,7 +27,8 @@ h1 { font-size: 1.25rem; margin: 0; }
 .card .git-meta .git-dirty { color: #e67e22; }
 .card .remote { font-size: .78rem; opacity: .85; align-self: center; }
 .card .remote .remote-behind { color: #e67e22; }
-.card .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+/* 버튼 행은 카드 맨 아래에 고정(margin-top:auto). 그리드 셀이 같은 행의 최대 높이로 늘어나므로 카드마다 버튼 위치가 정렬됨 */
+.card .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: auto; }
 button { padding: .5rem .8rem; border-radius: 8px; border: 1px solid #8886; cursor: pointer; background: #4a90e2; color: #fff; }
 button:disabled { opacity: .5; cursor: default; }
 .header-actions { display: flex; gap: .5rem; align-items: center; }
@@ -27,17 +42,6 @@ button:disabled { opacity: .5; cursor: default; }
 }
 .lang-switch button + button { border-left: 1px solid #8886; }
 .lang-switch button.active { background: #4a90e2; color: #fff; }
-
-/* 테마 전환 세그먼트 (언어 전환과 같은 모양) */
-.theme-switch { display: inline-flex; border: 1px solid #8886; border-radius: 8px; overflow: hidden; margin-right: .25rem; }
-.theme-switch button { padding: .35rem .6rem; border: none; border-radius: 0; background: transparent; color: inherit; font-size: .8rem; cursor: pointer; }
-.theme-switch button + button { border-left: 1px solid #8886; }
-.theme-switch button.active { background: #4a90e2; color: #fff; }
-
-/* 카드 GitHub 공개/비공개 배지 */
-.card .gh-badge { cursor: pointer; display: inline-block; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; border: 1px solid currentColor; margin-left: .3rem; vertical-align: middle; }
-.card .gh-badge.public { color: #2e8b57; }
-.card .gh-badge.private { color: #b8860b; }
 
 /* 도움말 버튼 + 모달 */
 #help-btn.ghost { background: transparent; color: inherit; }
@@ -68,7 +72,7 @@ button:disabled { opacity: .5; cursor: default; }
 /* 하단 서버 콘솔 드로어 (읽기 전용) */
 .console-drawer {
   position: fixed; left: 0; right: 0; bottom: 0;
-  height: 32vh; min-height: 140px;
+  height: 140px; /* 터미널 텍스트 약 5줄 + 바 */
   display: flex; flex-direction: column;
   background: #1e1e1e; color: #ddd;
   border-top: 2px solid #4a90e2; box-shadow: 0 -4px 16px #0006;
@@ -81,8 +85,101 @@ button:disabled { opacity: .5; cursor: default; }
 .console-collapse { background: transparent; color: #ccc; border: 1px solid #6666; padding: .1rem .5rem; }
 .console-pane { flex: 1; position: relative; overflow: hidden; padding: .25rem; }
 /* 카드가 드로어에 가리지 않도록 본문 하단 여백 */
-body.drawer-open { padding-bottom: calc(32vh + 1rem); }
+body.drawer-open { padding-bottom: calc(140px + 1rem); }
 body.drawer-open.drawer-collapsed { padding-bottom: calc(32px + 1rem); }
+
+/* 진입 전 동기화 게이트: 카드 배지 */
+.card .sync-badge { font-size: .72rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.card .sync-badge.sync-behind { color: #e74c3c; }
+.card .sync-badge.sync-ahead { color: #f1c40f; }
+.card .sync-badge.sync-diverged { color: #e67e22; }
+.card .sync-badge.sync-failed { color: #8889; font-weight: 400; }
+
+/* GitHub 가져오기 모달: 검색 + 목록 */
+/* 배경이 하드코딩 어두운 남색이므로 글자색도 명시(밝게) — color:inherit 면 라이트 모드에서 어두운 글자가 되어 안 보임 */
+.import-search { width: 100%; box-sizing: border-box; padding: .5rem .7rem; margin: .2rem 0 .6rem; border: 1px solid #3a424d; border-radius: 6px; background: #11161d; color: #e6edf3; font-size: .95rem; }
+.import-search::placeholder { color: #8b94a0; }
+.import-status { color: #9aa4b2; font-size: .9rem; padding: .3rem 0; }
+.import-list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
+.import-list li { display: flex; align-items: center; gap: .5rem; padding: .5rem .6rem; border-radius: 6px; cursor: pointer; }
+.import-list li:hover:not(.imported) { background: #1f2630; }
+.import-list li.imported { opacity: .5; cursor: default; }
+.import-list .repo-name { font-weight: 600; }
+.import-list .repo-vis { font-size: .72rem; color: #9aa4b2; border: 1px solid #3a424d; border-radius: 4px; padding: 0 .35rem; }
+.import-list .repo-when, .import-list .repo-tag { margin-left: auto; font-size: .8rem; color: #9aa4b2; }
+.import-fallback { margin-top: .5rem; padding: .3rem .7rem; }
+
+/* 카드 상태 명료화: 색 띠 + 2단(내 PC/GitHub) */
+/* .card 는 padding:1rem, border-radius:12px, flex column gap:.75rem → 띠는 -1rem 으로 상단·좌우 패딩을 상쇄해 카드 끝까지 닿게 하고, 아래 간격은 flex gap 이 처리(margin-bottom 0) */
+.card-strip { margin: -1rem -1rem 0; padding: .35rem .9rem; border-radius: 11px 11px 0 0; font-size: .8rem; font-weight: 600; color: #fff; }
+.card-strip[hidden] { display: none; }
+.card-strip.strip-action { background: #c0392b; }
+.card-strip.strip-ok { background: #27784a; }
+.card-strip.strip-warn { background: #9a7d12; }
+.card-strip.strip-muted { background: #39414c; }
+.card .local-row, .card .github-row { font-size: .8rem; color: #c7cdd6; margin-top: .15rem; }
+.card .local-row .lab, .card .github-row .lab { color: #8b94a0; display: inline-block; min-width: 4.4rem; }
+.card .uncommitted-hint { font-size: .72rem; color: #6f7884; margin: .05rem 0 .1rem 0; }
+.card .uncommitted-hint[hidden] { display: none; }
+.card .gh-val.gh-behind { color: #e74c3c; font-weight: 600; }
+.card .gh-val.gh-ahead { color: #f1c40f; font-weight: 600; }
+.card .gh-val.gh-diverged { color: #e67e22; font-weight: 600; }
+.card .gh-val.gh-synced { color: #3fb950; }
+.card .sync-actions { display: inline-flex; gap: .25rem; }
+.card .github-row[hidden] { display: none; }
+
+/* 글로벌 CLAUDE.md 동기화 모달 */
+.global-status { font-size: .9rem; line-height: 1.5; color: #c7cdd6; margin: .2rem 0 .6rem; }
+.global-diff-toggle { background: transparent; color: inherit; border: 1px solid #8886; border-radius: 6px; padding: .2rem .6rem; font-size: .8rem; }
+.global-diff-toggle[hidden] { display: none; }
+.global-diff {
+  margin: .5rem 0; padding: .6rem .7rem; max-height: 40vh; overflow: auto;
+  background: #11161d; border: 1px solid #3a424d; border-radius: 6px;
+  font-family: ui-monospace, monospace; font-size: .78rem; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
+}
+.global-diff.hidden { display: none; }
+.global-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .7rem 0 .4rem; }
+.global-actions button.recommend { box-shadow: 0 0 0 2px #4a90e2; font-weight: 600; }
+.global-note { font-size: .76rem; color: #8b94a0; margin-top: .3rem; }
+
+/* 새 프로젝트 모달: 버튼 행 */
+.create-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: .6rem; }
+.create-actions button.ghost { background: transparent; color: inherit; }
+
+/* 카드 삭제 버튼 + 삭제 모달 */
+/* 보조 액션 줄: 메모 / 삭제 (SVG 아이콘 + 라벨) */
+.card .actions-secondary { display: flex; gap: .5rem; flex-wrap: wrap; }
+.card .actions-secondary button { display: inline-flex; align-items: center; gap: .3rem; padding: .35rem .6rem; font-size: .82rem; background: transparent; color: inherit; border-color: #8886; }
+.card .actions-secondary button svg { flex-shrink: 0; }
+.card .card-rename { color: #3b82c4; border-color: #3b82c455; }
+.card .card-delete { color: #e74c3c; border-color: #e74c3c55; }
+.delete-gh { display: flex; align-items: flex-start; gap: .5rem; margin: .5rem 0; font-size: .9rem; color: #e74c3c; cursor: pointer; }
+.delete-gh.hidden { display: none; }
+#delete-submit.danger-solid { background: #e74c3c; border-color: #e74c3c; color: #fff; }
+#delete-submit:disabled { opacity: .5; cursor: default; }
+
+/* 라이트 모드 가독성: 어두운 모달 기준으로 잡힌 연한 글자색이 흰 배경(Canvas)에서 대비 미달 →
+   라이트 모드에서만 진하게(다크 모드는 기존 색 유지). global/create/delete 모달 공통 적용. */
+@media (prefers-color-scheme: light) {
+  .global-status { color: #4b5563; }
+  .import-status { color: #6b7280; }
+  .delete-gh { color: #c0392b; }
+  /* 카드 로컬/GitHub 행: 어두운테마용 연회색 → 흰 배경에서 진하게 */
+  .card .local-row, .card .github-row { color: #3a414b; }
+  .card .local-row .lab, .card .github-row .lab { color: #5b6470; }
+  .card .uncommitted-hint { color: #6b7280; }
+}
+
+/* 테마 전환 세그먼트 (언어 전환과 같은 모양) */
+.theme-switch { display: inline-flex; border: 1px solid #8886; border-radius: 8px; overflow: hidden; margin-right: .25rem; }
+.theme-switch button { padding: .35rem .6rem; border: none; border-radius: 0; background: transparent; color: inherit; font-size: .8rem; cursor: pointer; }
+.theme-switch button + button { border-left: 1px solid #8886; }
+.theme-switch button.active { background: #4a90e2; color: #fff; }
+
+/* 카드 GitHub 공개/비공개 배지 */
+.card .gh-badge { cursor: pointer; display: inline-block; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; border: 1px solid currentColor; margin-left: .35rem; vertical-align: middle; }
+.card .gh-badge.public { color: #3fb950; }
+.card .gh-badge.private { color: #d4a017; }
 
 /* 인앱 다이얼로그 (confirm/alert/prompt 대체) */
 .dlg-box { max-width: 480px; }
@@ -97,6 +194,7 @@ body.drawer-open.drawer-collapsed { padding-bottom: calc(32px + 1rem); }
 .root-line code { background: #8882; padding: .1rem .4rem; border-radius: 4px; word-break: break-all; }
 .root-line button.small, .banner button.small { padding: .15rem .5rem; font-size: .78rem; background: transparent; color: inherit; }
 .banner button.small { border-color: #fff8; color: #fff; margin-left: .6rem; }
+
 
 /* 폴더 선택창 */
 .picker-box { max-width: 620px; }
