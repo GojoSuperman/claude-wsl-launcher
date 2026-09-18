@@ -21,8 +21,9 @@
         <button type="button" data-theme="light" data-i18n-title="themeLightTitle" aria-label="light">☀️</button>
         <button type="button" data-theme="dark" data-i18n-title="themeDarkTitle" aria-label="dark">🌙</button>
       </div>
-      <button id="help-btn" type="button" class="ghost"><span aria-hidden="true">❓</span> <span data-i18n="help">도움말</span></button>
+      <button id="help-btn" type="button" class="ghost"><span aria-hidden="true">❓</span> <span data-i18n="help">📖 사용법</span></button>
       <button id="new-project" type="button" data-i18n="newProject">+ 새 프로젝트</button>
+      <button id="clone-project" type="button" data-i18n="cloneProject">⬇ 가져오기</button>
       <button id="refresh" type="button" data-i18n="refresh">새로고침</button>
       <button id="shutdown" type="button" class="danger" data-i18n="shutdown">서버 종료</button>
     </div>
@@ -50,11 +51,74 @@
     </div>
   </div>
 
+  <div id="import-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <div class="help-dialog">
+      <div class="help-head">
+        <h2 id="import-title"></h2>
+        <button id="import-close" class="help-close" type="button">✕</button>
+      </div>
+      <input id="import-search" class="import-search" type="text" />
+      <div id="import-status" class="import-status hidden"></div>
+      <ul id="import-list" class="import-list"></ul>
+    </div>
+  </div>
+
+  <div id="create-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-title">
+    <div class="help-dialog">
+      <div class="help-head">
+        <h2 id="create-title"></h2>
+        <button id="create-close" class="help-close" type="button">✕</button>
+      </div>
+      <input id="create-input" class="import-search" type="text" />
+      <div id="create-error" class="import-status hidden"></div>
+      <div class="create-actions">
+        <button id="create-cancel" type="button" class="ghost"></button>
+        <button id="create-submit" type="button"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+    <div class="help-dialog">
+      <div class="help-head">
+        <h2 id="delete-title"></h2>
+        <button id="delete-close" class="help-close" type="button">✕</button>
+      </div>
+      <p id="delete-desc" class="global-status"></p>
+      <p id="delete-running" class="banner hidden"></p>
+      <label id="delete-gh-row" class="delete-gh hidden">
+        <input id="delete-gh-check" type="checkbox" />
+        <span id="delete-gh-label"></span>
+      </label>
+      <div id="delete-error" class="import-status hidden"></div>
+      <div class="create-actions">
+        <button id="delete-cancel" type="button" class="ghost"></button>
+        <button id="delete-submit" type="button" class="danger-solid"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="note-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="note-title">
+    <div class="help-dialog">
+      <div class="help-head">
+        <h2 id="note-title"></h2>
+        <button id="note-close" class="help-close" type="button">✕</button>
+      </div>
+      <p id="note-desc" class="global-status"></p>
+      <input id="note-input" class="import-search" type="text" />
+      <div id="note-error" class="import-status hidden"></div>
+      <div class="create-actions">
+        <button id="note-cancel" type="button" class="ghost"></button>
+        <button id="note-submit" type="button"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- xterm UMD: 전역 Terminal, FitAddon 노출 (app/console 모듈보다 먼저 로드) -->
   <script src="/vendor/xterm/lib/xterm.js"></script>
   <script src="/vendor/addon-fit/lib/addon-fit.js"></script>
-  <script src="./console.js" type="module"></script>
   <script src="./theme.js" type="module"></script>
+  <script src="./console.js" type="module"></script>
   <script src="./app.js" type="module"></script>
   <script src="./help.js" type="module"></script>
 </body>
