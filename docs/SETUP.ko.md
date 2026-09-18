@@ -30,7 +30,7 @@
 
 | 필요한 것 | 이유 | 없으면 |
 |---|---|---|
-| **Windows 10/11 + WSL2** | `wsl.exe`·`powershell.exe` 로 창을 띄움 → **맥·일반 리눅스에선 안 됨** | 1번에서 설치 |
+| **Windows 10/11 + WSL2** | `wsl.exe`·`cmd.exe` 로 창을 띄움 → **맥·일반 리눅스에선 안 됨** | 1번에서 설치 |
 | WSL 안에 **Node.js 20 이상** | 서버 실행 | `setup.sh` 가 nvm 으로 설치 제안 |
 | WSL 안에 **Claude Code CLI** (`claude`) | 이 도구가 실행해 주는 대상 | `setup.sh` 가 설치 제안 |
 | (선택) **GitHub CLI** (`gh`) 로그인 | 카드에 GitHub **공개/비공개** 배지 표시, "프로젝트 이름 변경" 이 GitHub 저장소 이름까지 변경 | 없어도 동작 (배지는 `?`, 이름은 로컬만 변경) |
@@ -76,7 +76,7 @@ bash scripts/setup.sh
 
 | 순서 | 점검 | 문제가 있으면 |
 |---|---|---|
-| 1 | WSL 안인지, `powershell.exe`·`wsl.exe` 접근 가능한지 | 원인과 조치 안내 |
+| 1 | WSL 안인지, `cmd.exe`·`wsl.exe` 접근 가능한지 | 원인과 조치 안내 |
 | 2 | Node.js 20 이상 | "nvm 으로 설치할까요? [Y/N]" |
 | 3 | `claude` 가 **리눅스 쪽(nvm)** 에 있는지 — 단축키가 실제로 찾는 방식 그대로 | "설치할까요? [Y/N]" (`npm install -g @anthropic-ai/claude-code`) |
 | 4 | (선택) `gh` 로그인 여부 | 안내만 |
@@ -149,7 +149,7 @@ doctor 가 잡지 못하는 것:
 | 증상 | 해결 |
 |---|---|
 | 브라우저 "연결할 수 없음" | 서버가 안 떴거나 자동 종료됨. 단축키 다시 더블클릭, 또는 `npm start`. |
-| `claude 실행` 을 눌러도 창이 안 뜨거나 "spawn powershell.exe ENOENT" | PATH 문제. WSL 터미널에서 `npm start` 로(로그인 셸) 서버를 띄워 보세요. |
+| `claude 실행` 을 눌러도 창이 안 뜨거나 "spawn cmd.exe ENOENT" | PATH 문제. WSL 터미널에서 `npm start` 로(로그인 셸) 서버를 띄워 보세요. |
 | 포트 사용 중(EADDRINUSE) | 이미 서버가 떠 있음. [서버 종료] 하거나 `PORT=5000 npm start`. |
 | 단축키가 옛 동작을 함 / 안 됨 | `bash scripts/install-shortcut.sh` 로 재생성. |
 | 이름 변경 후 "GitHub 이름 변경 실패" 경고 | 로컬은 바뀐 상태. `gh auth login` 후 다시 시도하거나 GitHub 웹에서 이름을 바꾸고 `git remote set-url origin <새 URL>`. |

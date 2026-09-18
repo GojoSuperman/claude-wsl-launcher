@@ -30,7 +30,7 @@
 
 | 必要なもの | 理由 | 無い場合 |
 |---|---|---|
-| **Windows 10/11 + WSL2** | `wsl.exe`・`powershell.exe` でウィンドウを開く → **Mac・通常の Linux では動きません** | 1 でインストール |
+| **Windows 10/11 + WSL2** | `wsl.exe`・`cmd.exe` でウィンドウを開く → **Mac・通常の Linux では動きません** | 1 でインストール |
 | WSL 内の **Node.js 20 以上** | サーバーの実行 | `setup.sh` が nvm でのインストールを提案 |
 | WSL 内の **Claude Code CLI**(`claude`) | このツールが起動する対象 | `setup.sh` がインストールを提案 |
 | (任意)**GitHub CLI**(`gh`)ログイン済み | カードの公開/非公開バッジ、「プロジェクト名変更」で GitHub リポジトリ名も変更 | 無くても動作(バッジは `?`、名前変更はローカルのみ) |
@@ -76,7 +76,7 @@ bash scripts/setup.sh
 
 | # | 点検 | 問題があれば |
 |---|---|---|
-| 1 | WSL 内か、`powershell.exe`・`wsl.exe` にアクセスできるか | 原因と対処を案内 |
+| 1 | WSL 内か、`cmd.exe`・`wsl.exe` にアクセスできるか | 原因と対処を案内 |
 | 2 | Node.js 20 以上 | 「nvm でインストールしますか? [Y/N]」 |
 | 3 | `claude` が **Linux 側(nvm)** にあるか — ショートカットが実際に探す方法そのまま | 「インストールしますか? [Y/N]」(`npm install -g @anthropic-ai/claude-code`) |
 | 4 | (任意)`gh` のログイン状態 | 案内のみ |
@@ -149,7 +149,7 @@ doctor で捕まえられないもの:
 | 症状 | 対処 |
 |---|---|
 | ブラウザで「接続できません」 | サーバーが起動していないか自動停止した。ショートカットを再度ダブルクリック、または `npm start`。 |
-| `claude 起動` を押してもウィンドウが出ない / "spawn powershell.exe ENOENT" | PATH の問題。WSL ターミナルから `npm start`(ログインシェル)でサーバーを起動してみてください。 |
+| `claude 起動` を押してもウィンドウが出ない / "spawn cmd.exe ENOENT" | PATH の問題。WSL ターミナルから `npm start`(ログインシェル)でサーバーを起動してみてください。 |
 | ポート使用中(EADDRINUSE) | すでにサーバーが起動中。[サーバー停止] するか `PORT=5000 npm start`。 |
 | ショートカットが古い動作をする / 動かない | `bash scripts/install-shortcut.sh` で再作成。 |
 | 名前変更後に「GitHub の名前変更に失敗」の警告 | ローカルは変更済み。`gh auth login` 後に再試行するか、GitHub ウェブで名前を変えて `git remote set-url origin <新しい URL>`。 |

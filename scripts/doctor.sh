@@ -98,13 +98,13 @@ fi
 # [2] Windows 연동 (서버가 새 창을 띄울 때 필요) ------------------------------
 echo
 echo "[2/7] Windows 연동 (창 띄우기)"
-PS_FALLBACK="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
-if command -v powershell.exe >/dev/null 2>&1; then
-  ok "powershell.exe 접근 가능 (PATH)"
-elif [ -x "$PS_FALLBACK" ]; then
-  ok "powershell.exe 접근 가능 (표준 경로 폴백)"
+CMD_FALLBACK="/mnt/c/Windows/System32/cmd.exe"
+if command -v cmd.exe >/dev/null 2>&1; then
+  ok "cmd.exe 접근 가능 (PATH)"
+elif [ -x "$CMD_FALLBACK" ]; then
+  ok "cmd.exe 접근 가능 (표준 경로 폴백)"
 else
-  bad "powershell.exe 를 찾지 못함 — 'claude 실행' 시 새 창이 안 뜹니다."
+  bad "cmd.exe 를 찾지 못함 — 'claude 실행' 시 새 창이 안 뜹니다."
   hint "WSL interop 가 켜져 있는지 확인하세요 (/etc/wsl.conf 의 [interop] enabled=true)."
 fi
 if command -v wsl.exe >/dev/null 2>&1; then

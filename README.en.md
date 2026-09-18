@@ -48,13 +48,13 @@ Run `bash scripts/doctor.sh` to verify your setup.
 
 | Required | Why |
 |---|---|
-| **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `powershell.exe` → macOS and native Linux are not supported |
+| **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `cmd.exe` → macOS and native Linux are not supported |
 | **Node.js 20+** inside WSL | Runs the server (`setup.sh` offers to install it via nvm) |
 | **Claude Code CLI** inside WSL | What this tool launches (`setup.sh` offers to install it) |
 
 | Optional | Used for |
 |---|---|
-| **GitHub CLI (`gh`)**, logged in | The public/private badge on cards, and letting "Rename project" rename the GitHub repo too |
+| **GitHub CLI (`gh`)**, logged in | **Import from GitHub** (your repo list), deleting repositories, the public/private badge on cards, and letting "Rename project" rename the GitHub repo too. Sign in with `gh auth login`. |
 
 Distro name, home and desktop paths are **detected at runtime**, so there is nothing to configure per PC.
 
@@ -91,7 +91,7 @@ This tool avoids all of that by always launching in the **correct native WSL win
 ## How it works
 
 - A browser alone cannot start a process on your PC, so a **small local server (Express) running inside WSL** does it.
-- The server scans `~/projects`, reads git status, and calls `powershell.exe` with `Start-Process wsl.exe` to open claude in a **new WSL window**.
+- The server scans `~/projects`, reads git status, and calls `cmd.exe /c start` with `wsl.exe` to open claude in a **new WSL window**.
 - The server tees its own `stdout/stderr` into the `/ws/console` WebSocket for the bottom panel. When every such connection is gone it shuts itself down after a grace period.
 
 ## Security

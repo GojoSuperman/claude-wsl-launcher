@@ -48,13 +48,13 @@ gh auth login
 
 | 必須 | 理由 |
 |---|---|
-| **Windows 10/11 + WSL2** | `wsl.exe`・`powershell.exe` でウィンドウを開くため → macOS・ネイティブ Linux は非対応 |
+| **Windows 10/11 + WSL2** | `wsl.exe`・`cmd.exe` でウィンドウを開くため → macOS・ネイティブ Linux は非対応 |
 | WSL 内の **Node.js 20 以上** | サーバーの実行(無ければ `setup.sh` が nvm でのインストールを提案) |
 | WSL 内の **Claude Code CLI** | このツールが起動する対象(無ければ `setup.sh` がインストールを提案) |
 
 | 任意 | 用途 |
 |---|---|
-| **GitHub CLI(`gh`)** ログイン済み | カードの公開/非公開バッジ表示と、「プロジェクト名変更」で GitHub リポジトリ名も一緒に変える場合 |
+| **GitHub CLI(`gh`)** ログイン済み | **GitHub からの取り込み**(自分のリポジトリ一覧)、リポジトリの削除、カードの公開/非公開バッジ表示、「プロジェクト名変更」で GitHub リポジトリ名も一緒に変える場合。`gh auth login` でログインします。 |
 
 ディストリビューション名・ホーム・デスクトップのパスは**実行時に検出**するため、PC ごとの設定は不要です。
 
@@ -91,7 +91,7 @@ claude は **WSL ネイティブのパス**(`~/projects/...`、ext4)から起動
 ## 仕組み
 
 - ブラウザだけでは PC のプロセスを起動できないため、**WSL 内で動く小さなローカルサーバー**(Express)が代わりに行います。
-- サーバーは `~/projects` をスキャンし、git 状態を取得し、`powershell.exe` で `Start-Process wsl.exe` を呼んで**新しい WSL ウィンドウ**に claude を起動します。
+- サーバーは `~/projects` をスキャンし、git 状態を取得し、`cmd.exe /c start` で `wsl.exe` を呼んで**新しい WSL ウィンドウ**に claude を起動します。
 - サーバーは自身の `stdout/stderr` を `/ws/console` WebSocket に流して下部パネルに表示します。その接続がすべて切れると猶予後に自動停止します。
 
 ## セキュリティ

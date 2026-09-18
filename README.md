@@ -91,7 +91,7 @@ claude 는 **WSL 네이티브 경로**(`~/projects/...`, ext4)에서 띄워야 �
 ## 작동 방식
 
 - 브라우저만으론 PC 프로세스를 못 띄우므로, **WSL 안에서 도는 작은 로컬 서버**(Express)가 대신합니다.
-- 서버는 `~/projects` 스캔, git 상태 조회, `powershell.exe` 로 `Start-Process wsl.exe` 를 호출해 **새 WSL 창**에 claude 를 띄웁니다.
+- 서버는 `~/projects` 스캔, git 상태 조회, `cmd.exe /c start` 로 `wsl.exe` 를 호출해 **새 WSL 창**에 claude 를 띄웁니다.
 - 서버는 자신의 `stdout/stderr` 를 가로채 `/ws/console` WebSocket 으로 브라우저 하단 패널에 단방향 스트리밍합니다. 이 연결이 모두 끊기면 유예 후 자동 종료합니다.
 
 ## 보안

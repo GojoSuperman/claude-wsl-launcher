@@ -30,7 +30,7 @@ A personal local tool that shows the projects inside `~/projects` on a web page 
 
 | Needed | Why | If missing |
 |---|---|---|
-| **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `powershell.exe` → **no macOS / plain Linux** | Install in step 1 |
+| **Windows 10/11 + WSL2** | Windows are opened via `wsl.exe` / `cmd.exe` → **no macOS / plain Linux** | Install in step 1 |
 | **Node.js 20+** inside WSL | Runs the server | `setup.sh` offers to install via nvm |
 | **Claude Code CLI** (`claude`) inside WSL | What this tool launches | `setup.sh` offers to install |
 | (optional) **GitHub CLI** (`gh`), logged in | Public/private badge on cards, and "Rename project" renaming the GitHub repo too | Works without it (badge shows `?`, rename is local only) |
@@ -76,7 +76,7 @@ What it does:
 
 | # | Check | If there is a problem |
 |---|---|---|
-| 1 | Inside WSL? Can it reach `powershell.exe` / `wsl.exe`? | Explains the cause and the fix |
+| 1 | Inside WSL? Can it reach `cmd.exe` / `wsl.exe`? | Explains the cause and the fix |
 | 2 | Node.js 20+ | "Install via nvm? [Y/N]" |
 | 3 | Is `claude` installed on the **Linux side (nvm)** — checked exactly the way the shortcut launcher finds it | "Install? [Y/N]" (`npm install -g @anthropic-ai/claude-code`) |
 | 4 | (optional) `gh` logged in? | Hint only |
@@ -149,7 +149,7 @@ What doctor cannot catch:
 | Symptom | Fix |
 |---|---|
 | Browser says "cannot connect" | The server did not start or auto-stopped. Double-click the shortcut again, or run `npm start`. |
-| `Launch claude` opens nothing, or "spawn powershell.exe ENOENT" | A PATH problem. Start the server from a WSL terminal with `npm start` (login shell). |
+| `Launch claude` opens nothing, or "spawn cmd.exe ENOENT" | A PATH problem. Start the server from a WSL terminal with `npm start` (login shell). |
 | Port already in use (EADDRINUSE) | A server is already running. Use [Shut down], or `PORT=5000 npm start`. |
 | Shortcut behaves like the old version / does nothing | Recreate it: `bash scripts/install-shortcut.sh`. |
 | "GitHub rename failed" warning after renaming | The local folder is already renamed. Run `gh auth login` and retry, or rename on GitHub web and run `git remote set-url origin <new URL>`. |
