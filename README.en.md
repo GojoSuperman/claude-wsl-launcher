@@ -75,6 +75,7 @@ Distro name, home and desktop paths are **detected at runtime**, so there is not
 - **Auto shutdown**: closing the dashboard window stops the server after about 10 seconds (`AUTO_SHUTDOWN=0` disables). The **Shut down** button in the header stops it immediately.
 - **Languages**: 한국어 · English · 日本語 (remembered). **In-app help**: `❓ Help` button or the `?` key.
 - **Projects folder pick/change**: chosen from detected candidates at install time, changeable any time with [Change] at the top of the dashboard; when there are no cards the banner offers it too. Priority: `PROJECTS_ROOT` env var > config file > `~/projects`.
+- **Self-update**: `⟳ Update` in the header checks for a new version, pulls it (`git pull --ff-only` + `npm install`) and walks you through the restart. If you have local edits or a diverged history it **changes nothing** and tells you why.
 - **Port fallback**: if `41730` is busy, moves to `41731`–`41739`. Set one with `PORT=5000 npm start`.
 
 ## Why this tool?
