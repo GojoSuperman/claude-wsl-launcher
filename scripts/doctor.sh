@@ -182,7 +182,15 @@ if command -v gh >/dev/null 2>&1; then
     hint "gh CLI 는 있지만 로그인 안 됨 (선택): 'gh auth login' 하면 'GitHub 에서 가져오기'·저장소 삭제·공개여부 배지를 쓸 수 있어요."
   fi
 else
-  hint "gh CLI 없음 (선택): 없어도 나머지 기능은 동작해요. 'GitHub 에서 가져오기'·저장소 삭제를 쓰려면 https://cli.github.com 설치 후 'gh auth login'."
+  # 설치 명령은 이 배포판에서 실제로 통하는 것을 안내한다. WSL 기본인 우분투/데비안이면
+  # apt 한 줄이면 되는데, cli.github.com 은 keyring 등록부터 시작하는 여러 단계를 안내해
+  # 비개발자가 여기서 막힌다(2026-09-18 실사용자 사례). snap 은 WSL 에서 systemd 가
+  # 꺼져 있으면 실패하므로 권하지 않는다.
+  if command -v apt-get >/dev/null 2>&1; then
+    hint "gh CLI 없음 (선택): 없어도 나머지 기능은 동작해요. 'GitHub 에서 가져오기'·저장소 삭제를 쓰려면:  sudo apt install gh  → 그다음  gh auth login"
+  else
+    hint "gh CLI 없음 (선택): 없어도 나머지 기능은 동작해요. 'GitHub 에서 가져오기'·저장소 삭제를 쓰려면 https://cli.github.com 설치 후 'gh auth login'."
+  fi
 fi
 
 # [5] 스크립트 줄바꿈 (CRLF 면 bash 가 죽음) ---------------------------------
