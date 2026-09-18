@@ -16,7 +16,11 @@ import { createVisibilityLookup, setVisibility } from './github-visibility.js';
 import { fetch as gitFetch, pull as gitPull } from './git-sync.js';
 import { runningPaths, isRunning } from './running.js';
 import { create as createProject } from './creator.js';
+import { trashLocal } from './deleter.js';
 import { rename as renameProject } from './renamer.js';
+import { readAll as readNotes, setNote } from './notes.js';
+import { clone as cloneProject } from './cloner.js';
+import { listRepos, cloneRepo, parseRepos, deleteRepo } from './github.js';
 import { createConsoleStream } from './console-stream.js';
 import { createIdleShutdown } from './idle-shutdown.js';
 
@@ -45,6 +49,12 @@ try {
 }
 console.log(`[env] distro=${env.distro} projectsRoot=${env.projectsRoot} (${env.projectsRootSource})`);
 
+// 프로젝트 메모 저장 파일 (launch.sh LOG_DIR 과 동일 관행: XDG_STATE_HOME 우선)
+const NOTES_FILE = path.join(
+  process.env.XDG_STATE_HOME || path.join(env.home, '.local', 'state'),
+  'project-launcher', 'notes.json'
+);
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -55,6 +65,7 @@ app.get('/api/projects', async (req, res) => {
   try {
     const dirs = list(env.projectsRoot);
     const runSet = runningPaths();
+    const notes = readNotes(NOTES_FILE); // 프로젝트명 → 메모
     const projects = await Promise.all(
       dirs.map(async (p) => ({
         name: p.name,
@@ -64,6 +75,7 @@ app.get('/api/projects', async (req, res) => {
         running: isRunning(runSet, p.path),
         self: isSelf(p.path),
         github: await originRepo(p.path), // origin 이 GitHub 면 'owner/repo', 아니면 null
+        note: notes[p.name] || '', // 메모(없으면 빈 문자열)
       }))
     );
     res.json({ projects });
@@ -182,6 +194,84 @@ app.post('/api/config', (req, res) => {
 app.post('/api/projects/create', async (req, res) => {
   try {
     const r = createProject(env.projectsRoot, req.body?.name);
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/projects/note', (req, res) => {
+  try {
+    const full = resolveProject(env.projectsRoot, req.body?.name);
+    if (!full) return res.status(400).json({ ok: false, error: 'unknown project' });
+    res.json(setNote(NOTES_FILE, req.body.name, req.body?.note));
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/projects/clone', async (req, res) => {
+  try {
+    const r = await cloneProject(env.projectsRoot, req.body?.url, req.body?.name);
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/projects/remote', async (req, res) => {
+  try {
+    const full = resolveProject(env.projectsRoot, req.query?.name);
+    if (!full) return res.status(400).json({ ok: false, error: 'unknown project' });
+    const nameWithOwner = await originRepo(full);
+    res.json({ ok: true, nameWithOwner });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/projects/delete', async (req, res) => {
+  try {
+    const name = req.body?.name;
+    const full = resolveProject(env.projectsRoot, name);
+    if (!full) return res.status(400).json({ ok: false, error: 'unknown project' });
+    if (isSelf(full)) return res.status(400).json({ ok: false, error: 'self' });
+    if (isRunning(runningPaths(), full)) {
+      return res.status(409).json({ ok: false, error: 'running' });
+    }
+    let github;
+    if (req.body?.deleteGithub === true) {
+      const nameWithOwner = await originRepo(full);
+      if (!nameWithOwner) {
+        return res.json({ ok: false, github: { ok: false, error: 'no github remote' } });
+      }
+      github = await deleteRepo(nameWithOwner);
+      if (!github.ok) {
+        // GitHub 실패 → 로컬은 보존(부분 삭제 방지)
+        return res.json({ ok: false, github });
+      }
+    }
+    const local = await trashLocal(env.projectsRoot, name);
+    res.json({ ok: local.ok, github, local });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/github/repos', async (req, res) => {
+  try {
+    const r = await listRepos();
+    if (!r.ok) { res.json({ ok: false, error: r.error }); return; }
+    const existing = list(env.projectsRoot).map((d) => d.name);
+    res.json({ ok: true, repos: parseRepos(r.raw, existing) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/github/clone', async (req, res) => {
+  try {
+    const r = await cloneRepo(env.projectsRoot, req.body?.nameWithOwner, req.body?.name);
     res.json(r);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
