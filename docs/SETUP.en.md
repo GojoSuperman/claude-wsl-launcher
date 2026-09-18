@@ -129,7 +129,7 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 | **[✏️ Rename project]** | Renames the folder and moves the claude history folder along. If origin is GitHub, runs `gh repo rename` to update the repo name and remote URL (needs gh login; on failure only the local folder changes and a warning appears). Disabled for running projects and this tool's own folder |
 | **GitHub line** on a card | The origin repo (`owner/repo`) and a **public/private** badge. Shows `?` without gh login. Click the badge to switch after confirming (needs admin permission on the repo) |
 | **Auto · ☀️ · 🌙** | Light/dark theme. Auto follows the Windows setting (remembered) |
-| **[⟳ Update]** | Updates the launcher itself: check → pull → shut down to apply, all in one modal. If you have local edits or a diverged history, nothing is changed and the reason is shown |
+| **[⟳ Update]** | Updates the launcher itself: check → pull → shut down to apply, all in one modal. If your local edits overlap the incoming changes, or the history has diverged, nothing is changed and the reason is shown |
 | **[❓ Help]** / `?` key | Usage modal |
 | Bottom **server console** | This server's log (read-only). ▾ collapses/expands |
 
