@@ -58,15 +58,27 @@ resolve_cmd() {
 #     powershell(기동 1.7~2.8초) → cmd(0.4~0.7초) 교체로 런처 체감 지연을 줄임(2026-09-14 실측,
 #     세션 종료 후 창 유지 실사용 확인). start 의 첫 "" 는 창 제목 자리채움. 만약 세션 종료 시
 #     창이 함께 죽는 회귀가 보이면 powershell Start-Process 방식으로 되돌릴 것.
+# 기다리지 않는 이유(2026-09-28 실측): Chrome 이 꺼져 있을 때 이 호출로 뜬 chrome.exe 가 본체가 되며
+#   interop 입출력 핸들을 물려받아 쥐고 있어, cmd 호출이 Chrome 을 닫을 때까지 돌아오지 않는다
+#   → 이 스크립트가 exit 못 해 터미널 창이 남는다. 그래서 분리 실행 후 잠깐만 지켜보고,
+#   그 안에 실패로 끝나면 폴백, 아직 살아 있으면(=Chrome 이 핸들을 쥠) 성공으로 보고 떠난다.
 # 실패(미설치/조회불가)하면 explorer.exe(기본 브라우저 일반 탭)로 폴백 → 최소한 대시보드는 뜬다.
 open_browser() {
   [ -n "${LAUNCHER_NO_BROWSER:-}" ] && return 0
-  local url="http://localhost:${1}" chrome chrome_win cmdexe
+  local url="http://localhost:${1}" chrome chrome_win cmdexe pid
   if chrome="$(find_chrome)" && cmdexe="$(resolve_cmd)"; then
     chrome_win="$(wslpath -w "$chrome")"
-    if "$cmdexe" /c start "" "$chrome_win" "--app=${url}" >/dev/null 2>&1; then
+    setsid "$cmdexe" /c start "" "$chrome_win" "--app=${url}" >/dev/null 2>&1 </dev/null &
+    pid=$!
+    for _ in $(seq 1 30); do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.1
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      disown "$pid" 2>/dev/null || true
       return 0
     fi
+    wait "$pid" && return 0
   fi
   explorer.exe "$url" >/dev/null 2>&1 || true
 }
