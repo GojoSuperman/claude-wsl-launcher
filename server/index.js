@@ -320,6 +320,7 @@ app.post('/api/update', async (req, res) => {
 
 app.post('/api/shutdown', (req, res) => {
   res.json({ ok: true });
+  console.log(`[shutdown] ${stamp()} 서버 종료 버튼으로 종료합니다`);
   // 응답 flush 후 종료
   setTimeout(() => {
     server.close(() => process.exit(0));
@@ -338,13 +339,27 @@ function attachWebSocket(srv) {
   });
 }
 
+// 로그용 현지 시각 (서버가 왜·언제 꺼졌는지 server.log.prev 로 가리기 위해)
+function stamp() {
+  return new Date().toLocaleString('sv-SE');
+}
+
+// 종료 이유 기록: 신호로 죽으면 그 신호가 남는다. WSL VM 이 통째로 내려가면 아무 줄도 남지 않는다
+// → 마지막 줄이 [idle]/[shutdown]/[signal] 중 무엇인지, 아예 없는지로 원인을 가린다.
+for (const sig of ['SIGTERM', 'SIGHUP', 'SIGINT']) {
+  process.on(sig, () => {
+    console.log(`[signal] ${stamp()} ${sig} 수신 — 종료합니다`);
+    process.exit(0);
+  });
+}
+
 // 브라우저 창(콘솔 WebSocket)이 모두 닫히고 유예가 지나면 자동 종료. AUTO_SHUTDOWN=0 으로 끔.
 const AUTO_SHUTDOWN = process.env.AUTO_SHUTDOWN !== '0';
 const idle = createIdleShutdown({
   graceMs: 10000,
   onShutdown: () => {
     if (!AUTO_SHUTDOWN) return;
-    console.log('[idle] 대시보드 창이 닫혀 서버를 자동 종료합니다');
+    console.log(`[idle] ${stamp()} 대시보드 창이 닫혀 서버를 자동 종료합니다`);
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 1000).unref();
   },
@@ -356,7 +371,7 @@ function listen(port, triesLeft) {
   srv.once('listening', () => {
     server = srv;
     const actual = srv.address().port;
-    console.log(`프로젝트 런처: http://127.0.0.1:${actual}`);
+    console.log(`프로젝트 런처: http://127.0.0.1:${actual} (${stamp()} 시작)`);
     attachWebSocket(srv);
   });
   srv.once('error', (e) => {

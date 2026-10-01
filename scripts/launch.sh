@@ -119,6 +119,8 @@ if FOUND="$(ours_port)"; then
 fi
 
 mkdir -p "$LOG_DIR"
+# 직전 실행의 로그는 server.log.prev 로 남긴다 — 서버가 왜 꺼졌는지(자동 종료/WSL 종료)를 나중에 가리기 위해.
+[ -s "$LOG" ] && mv -f "$LOG" "$LOG.prev"
 : > "$LOG"
 # 창(wsl.exe 세션)이 닫혀도 살아남도록 setsid 로 새 세션에 완전 분리.
 # (WSL 함정: transient `wsl.exe -- cmd` 세션이 끝나면 nohup 만으론 자식이 함께 죽는다.

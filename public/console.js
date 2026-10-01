@@ -26,11 +26,28 @@ term.loadAddon(fit);
 term.open(paneEl);
 fit.fit();
 
+// 끊기면 1초마다 다시 연결한다. 서버는 연결이 0개인 채 10초가 지나면 자동 종료되므로,
+// 절전에서 깨어날 때처럼 창은 열려 있는데 연결만 끊긴 경우 그 안에 다시 붙어야 서버가 산다(2026-10-01 실측).
+// 15번(≈15초, 서버 유예 10초보다 김) 연달아 실패하면 서버가 꺼진 것으로 보고 안내를 한 번 띄운다.
+const RETRY_MS = 1000;
+const GONE_AFTER = 15;
+let failures = 0;
+
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws/console`);
+  ws.onopen = () => {
+    // 서버가 접속 시 누적 로그를 처음부터 다시 보내므로, 재연결이면 화면을 비워 중복을 막는다.
+    if (failures > 0) term.reset();
+    failures = 0;
+  };
   ws.onmessage = (ev) => term.write(ev.data); // 서버 → 브라우저 (raw 텍스트)
-  ws.onclose = () => term.write(`\r\n${t('consoleDisconnected')}\r\n`);
+  ws.onclose = () => {
+    if (failures === 0) term.write(`\r\n${t('consoleDisconnected')}\r\n`);
+    failures += 1;
+    if (failures === GONE_AFTER) term.write(`${t('consoleServerGone')}\r\n`);
+    setTimeout(connect, RETRY_MS);
+  };
 }
 
 collapseBtn.addEventListener('click', () => {
