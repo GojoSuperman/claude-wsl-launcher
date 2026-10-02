@@ -669,7 +669,18 @@ function renderCard(p) {
   }
   actionsSecondary.append(noteBtn, renameBtn, delBtn);
 
-  card.append(strip, name, note, local, hint, github, actions, actionsSecondary);
+  // 시안 A '액자형': 상태 안내 줄 + 정보를 둥근 안쪽 상자(액자)로 묶고, 버튼은 그 아래
+  const info = document.createElement('div');
+  info.className = 'card-info';
+  info.append(name, note, local, hint, github);
+  const frame = document.createElement('div');
+  frame.className = 'card-frame';
+  frame.append(strip, info);
+  // 버튼은 액자 바로 아래에 이어서 흐르게(실행·GitHub 확인·메모·이름 변경·삭제가 한 묶음)
+  const buttons = document.createElement('div');
+  buttons.className = 'card-buttons';
+  buttons.append(actions, actionsSecondary);
+  card.append(frame, buttons);
   renderStatus(card);
   return card;
 }
@@ -694,9 +705,11 @@ function renderStatus(card) {
     strip.textContent = st.stripArg !== undefined ? t(st.stripKey, st.stripArg) : t(st.stripKey);
     strip.classList.add('strip-' + st.level);
     strip.hidden = false;
+    card.dataset.level = st.level; // 카드 윗변 색 띠(외곽)도 같은 상태 색
   } else {
     strip.textContent = '';
     strip.hidden = true;
+    delete card.dataset.level;
   }
 
   // ☁️ GitHub 행
