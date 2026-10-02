@@ -19,6 +19,8 @@ import { create as createProject } from './creator.js';
 import { trashLocal } from './deleter.js';
 import { rename as renameProject } from './renamer.js';
 import { readAll as readNotes, setNote } from './notes.js';
+import { readOrder, writeOrder, renameInOrder } from './order.js';
+import { readTabs, writeTabs, renameInTabs } from './tabs.js';
 import { clone as cloneProject } from './cloner.js';
 import { listRepos, cloneRepo, parseRepos, deleteRepo } from './github.js';
 import { check as checkUpdate, update as runUpdate } from './updater.js';
@@ -55,6 +57,10 @@ const NOTES_FILE = path.join(
   process.env.XDG_STATE_HOME || path.join(env.home, '.local', 'state'),
   'project-launcher', 'notes.json'
 );
+// 사용자가 드래그로 정한 카드 순서 (같은 폴더)
+const ORDER_FILE = path.join(path.dirname(NOTES_FILE), 'order.json');
+// 사용자가 만든 작업 탭 + 프로젝트별 탭 배정 (같은 폴더)
+const TABS_FILE = path.join(path.dirname(NOTES_FILE), 'tabs.json');
 
 const app = express();
 app.use(express.json());
@@ -79,7 +85,7 @@ app.get('/api/projects', async (req, res) => {
         note: notes[p.name] || '', // 메모(없으면 빈 문자열)
       }))
     );
-    res.json({ projects });
+    res.json({ projects, order: readOrder(ORDER_FILE), tabs: readTabs(TABS_FILE) });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -211,6 +217,24 @@ app.post('/api/projects/note', (req, res) => {
   }
 });
 
+// 카드 순서 저장: {order:[프로젝트명…]}. 빈 배열 = 이름순으로 되돌리기.
+app.post('/api/order', (req, res) => {
+  try {
+    res.json(writeOrder(ORDER_FILE, req.body?.order));
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// 작업 탭 저장: {tabs:[{id,name}], assign:{프로젝트명:탭id}} 전체를 통째로 덮어쓴다.
+app.post('/api/tabs', (req, res) => {
+  try {
+    res.json(writeTabs(TABS_FILE, req.body));
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.post('/api/projects/clone', async (req, res) => {
   try {
     const r = await cloneProject(env.projectsRoot, req.body?.url, req.body?.name);
@@ -290,6 +314,11 @@ app.post('/api/projects/rename', async (req, res) => {
       isRunning: (full) => isRunning(runSet, full),
       isSelf,
     });
+    if (r.ok) {
+      // 순서 자리·탭 배정 유지
+      renameInOrder(ORDER_FILE, req.body.name, req.body.newName);
+      renameInTabs(TABS_FILE, req.body.name, req.body.newName);
+    }
     res.json(r);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

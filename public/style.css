@@ -15,6 +15,37 @@ h1 { font-size: 1.25rem; margin: 0; }
 /* 그룹 섹션 헤더: 그리드 전체폭 차지해 반응형 흐름을 깨지 않음 */
 .grid-section { grid-column: 1 / -1; font-size: .8rem; font-weight: 600; opacity: .7; margin: .5rem 0 -.25rem; }
 .grid-section:first-child { margin-top: 0; }
+.grid-section { display: flex; align-items: center; gap: .6rem; }
+.grid-section .order-reset { font-weight: 400; padding: .1rem .5rem; font-size: .75rem; background: transparent; color: inherit; }
+/* 카드 드래그로 순서 바꾸기 */
+.card[draggable="true"] { cursor: grab; }
+.card.dragging { opacity: .4; border-style: dashed; }
+.card[hidden], .grid-section[hidden] { display: none; }
+.tab-empty { grid-column: 1 / -1; opacity: .6; padding: 2rem 0; text-align: center; font-size: .9rem; }
+/* 작업 탭 줄 */
+/* 탭 줄도 헤더 바로 아래에 고정(--header-h 는 app.js 가 실제 헤더 높이로 갱신). 헤더처럼 화면 끝까지 채움. */
+.tabbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+  position: sticky; top: var(--header-h, 4.5rem); z-index: 39;
+  background: Canvas;
+  margin: 0 -1.5rem .75rem; padding: .5rem 1.5rem;
+  border-bottom: 1px solid #8884;
+}
+.tabbar .tab { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .75rem; border-radius: 999px; border: 1px solid #8886; background: transparent; color: inherit; font-size: .85rem; cursor: pointer; }
+.tabbar .tab.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+.tabbar .tab-count { font-size: .72rem; opacity: .7; }
+.tabbar .tab-del { margin-left: .1rem; opacity: .55; font-size: .9rem; line-height: 1; }
+.tabbar .tab-del:hover { opacity: 1; }
+.tabbar .tab-add { padding: .3rem .65rem; font-weight: 600; }
+/* 카드를 끄는 동안: 놓을 수 있는 탭 전부 점선, 올려 둔 탭은 주황으로 채우고 키움(선택된 탭의 파랑과 구분) */
+.tabbar.card-dragging .tab.droppable { outline: 2px dashed #3b82f688; outline-offset: 2px; }
+.tabbar .tab.drop-target { background: #f59e0b; border-color: #f59e0b; color: #fff; outline: 2px solid #f59e0b; outline-offset: 2px; transform: scale(1.12); transition: transform .12s; }
+/* 놓은 뒤: 받은 탭이 초록으로 깜빡 + 안내 문구 */
+@keyframes tab-received { 0%, 60% { background: #2ecc71; border-color: #2ecc71; color: #fff; transform: scale(1.12); } 100% { transform: scale(1); } }
+.tabbar .tab.received { animation: tab-received 1.2s ease-out; }
+.tabbar .tab-toast { font-size: .82rem; color: #2ecc71; font-weight: 600; }
+.tabbar .tab.dragging { opacity: .4; }
+.tabbar .order-reset { margin-left: auto; padding: .15rem .5rem; font-size: .75rem; background: transparent; color: inherit; }
 .card { border: 1px solid #8884; border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
 .card .name { font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .4rem; }
 .card .name-text { overflow-wrap: anywhere; }

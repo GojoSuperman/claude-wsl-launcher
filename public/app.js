@@ -7,6 +7,16 @@ import { computeCardStatus } from './card-status.js';
 import { groupProjects } from './project-group.js';
 
 const grid = document.getElementById('grid');
+let customOrder = false; // 드래그로 정한 카드 순서가 있으면 '이름순 정렬' 버튼 표시
+let tabsState = { tabs: [], assign: {} }; // 사용자 작업 탭 + 프로젝트별 탭 배정 (서버 tabs.json)
+const tabbar = document.getElementById('tabbar');
+// 탭 줄을 헤더 바로 아래에 고정하려고 실제 헤더 높이를 CSS 변수로 넘긴다(창 너비에 따라 헤더가 두 줄이 되기도 함).
+{
+  const header = document.querySelector('header');
+  const sync = () => document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
+  sync();
+  new ResizeObserver(sync).observe(header);
+}
 const banner = document.getElementById('banner');
 const refreshBtn = document.getElementById('refresh');
 const newProjectBtn = document.getElementById('new-project');
@@ -112,11 +122,16 @@ async function loadProjects() {
   }
   projects.clear();
   for (const p of data.projects) projects.set(p.name, p); // 상태 조회용 — 렌더 전에 먼저 채움
-  // GitHub 연결 여부로 두 그룹(각 이름순) → 섹션 헤더 + 카드
-  const { noGithub, github } = groupProjects(data.projects);
+  // GitHub 연결 여부로 두 그룹(저장된 순서, 없으면 이름순) → 섹션 헤더 + 카드
+  const order = Array.isArray(data.order) ? data.order : [];
+  customOrder = order.length > 0;
+  const { noGithub, github } = groupProjects(data.projects, order);
+  tabsState = data.tabs && Array.isArray(data.tabs.tabs) ? data.tabs : { tabs: [], assign: {} };
   fillVisibility(data.projects.filter((p) => p.github).map((p) => p.name));
-  renderGroup(t('groupNoGithub'), noGithub);
-  renderGroup(t('groupGithub'), github);
+  renderGroup(t('groupNoGithub'), noGithub, 'local');
+  renderGroup(t('groupGithub'), github, 'github');
+  renderTabBar();
+  applyTabFilter();
   if (data.projects.length === 0) {
     // 빈 목록 = 스캔 폴더가 잘못 잡혔을 가능성이 가장 큼 → 바로 바꿀 수 있게
     showBanner(t('noProjects', shortPath(rootInfo.projectsRoot)));
@@ -128,14 +143,354 @@ async function loadProjects() {
 }
 
 // 그룹이 비어있지 않으면 섹션 헤더(전체폭) + 그 그룹 카드들을 grid 에 추가
-function renderGroup(label, group) {
+// key: 드래그 이동을 같은 그룹 안으로 제한하는 표식(헤더·카드 공통 data-group).
+function renderGroup(label, group, key) {
   if (!group.length) return;
   const header = document.createElement('div');
   header.className = 'grid-section';
+  header.dataset.group = key;
   header.textContent = label;
   grid.appendChild(header);
-  for (const p of group) grid.appendChild(renderCard(p));
+  for (const p of group) {
+    const card = renderCard(p);
+    card.dataset.group = key;
+    card.draggable = true;
+    grid.appendChild(card);
+  }
 }
+
+// ── 카드 드래그로 순서 바꾸기 (같은 그룹 안에서만) ──
+// 끄는 동안 카드를 실시간으로 옮겨 보여주고, 놓으면 전체 순서를 서버(order.json)에 저장한다.
+let dragCard = null;
+let dragBefore = '';
+let droppedOnTab = false; // 탭에 놓았으면 끄는 동안 바뀐 카드 자리를 원래대로 되돌린다
+const cardOrder = () => [...grid.querySelectorAll('.card')].map((c) => c.dataset.name);
+
+grid.addEventListener('dragstart', (e) => {
+  const card = e.target.closest?.('.card');
+  if (!card || !card.draggable) return;
+  dragCard = card;
+  droppedOnTab = false;
+  tabbar.classList.add('card-dragging'); // 놓을 수 있는 탭을 점선으로 표시
+  dragBefore = cardOrder().join('\n');
+  card.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', card.dataset.name);
+});
+
+grid.addEventListener('dragover', (e) => {
+  if (!dragCard) return;
+  const over = e.target.closest?.('.card');
+  if (!over || over.dataset.group !== dragCard.dataset.group) return;
+  e.preventDefault(); // 같은 그룹 위에서만 놓기 허용
+  if (over === dragCard || sliding.has(over)) return; // 미끄러지는 중인 카드 위에선 다시 안 바꿈(떨림 방지)
+  const r = over.getBoundingClientRect();
+  const after = e.clientX > r.left + r.width / 2;
+  if (after ? over.nextElementSibling !== dragCard : over.previousElementSibling !== dragCard) {
+    slideCards(dragCard.dataset.group, () => over[after ? 'after' : 'before'](dragCard));
+  }
+});
+
+// Windows 타일처럼 부드럽게: 자리 바꾸기 전/후 위치를 재서, 그 차이만큼 원래 자리에서 새 자리로 미끄러지게 한다(FLIP).
+const SLIDE_MS = 200;
+const sliding = new Set();
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+function slideCards(group, mutate) {
+  if (reduceMotion.matches) { mutate(); return; }
+  const cards = [...grid.querySelectorAll(`.card[data-group="${group}"]:not([hidden])`)];
+  const before = new Map(cards.map((c) => [c, c.getBoundingClientRect()]));
+  mutate();
+  for (const c of cards) {
+    const a = before.get(c); // 바꾸기 전 '보이던' 위치(미끄러지는 중이면 그 중간 위치)
+    for (const old of c.getAnimations()) old.cancel(); // 남은 미끄럼을 지운 뒤 새 자리를 재야 정확
+    const b = c.getBoundingClientRect();
+    const dx = a.left - b.left;
+    const dy = a.top - b.top;
+    if (!dx && !dy) continue;
+    const anim = c.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+      { duration: SLIDE_MS, easing: 'cubic-bezier(.2, .8, .2, 1)' },
+    );
+    sliding.add(c);
+    const done = () => sliding.delete(c);
+    anim.onfinish = done;
+    anim.oncancel = done;
+  }
+}
+
+grid.addEventListener('drop', (e) => { if (dragCard) e.preventDefault(); });
+
+grid.addEventListener('dragend', () => {
+  if (!dragCard) return;
+  dragCard.classList.remove('dragging');
+  dragCard = null;
+  tabbar.classList.remove('card-dragging');
+  for (const x of tabbar.querySelectorAll('.drop-target')) x.classList.remove('drop-target');
+  if (droppedOnTab) { placeCards(dragBefore.split('\n')); return; }
+  const names = cardOrder();
+  if (names.join('\n') !== dragBefore) saveOrder(names);
+});
+
+// names 순서대로 각 그룹 헤더 뒤에 카드를 다시 배치한다(숨긴 카드 포함).
+function placeCards(names) {
+  const last = {};
+  for (const name of names) {
+    const card = findCard(name);
+    if (!card) continue;
+    const g = card.dataset.group;
+    const anchor = last[g] || grid.querySelector(`.grid-section[data-group="${g}"]`);
+    if (anchor) anchor.after(card);
+    last[g] = card;
+  }
+}
+
+async function saveOrder(names) {
+  try {
+    const res = await fetch('/api/order', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: names }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    customOrder = names.length > 0;
+    const reset = tabbar.querySelector('.order-reset');
+    if (reset) reset.hidden = !customOrder;
+  } catch {
+    showBanner(t('orderSaveFail'));
+  }
+}
+
+async function resetOrder() {
+  await saveOrder([]);
+  await loadProjects();
+}
+
+// ── 작업 탭 ──
+// [전체] [미분류] [사용자 탭…] [+]. 카드를 사용자 탭/미분류에 끌어 놓으면 배정이 바뀐다.
+// 탭 전환은 카드를 다시 그리지 않고 숨김만 바꾼다(배지·상태 표시 유지, 숨긴 카드의 순서도 보존).
+const TAB_ALL = 'all';
+const TAB_NONE = 'none';
+const TAB_LS_KEY = 'launcher.activeTab';
+let activeTab = (() => { try { return localStorage.getItem(TAB_LS_KEY) || TAB_ALL; } catch { return TAB_ALL; } })();
+let dragTab = null;
+
+function setActiveTab(id) {
+  activeTab = id;
+  try { localStorage.setItem(TAB_LS_KEY, id); } catch { /* 저장 불가 환경 */ }
+  renderTabBar();
+  applyTabFilter();
+}
+
+function inTab(name, tab) {
+  const a = tabsState.assign[name];
+  if (tab === TAB_ALL) return true;
+  if (tab === TAB_NONE) return !a;
+  return a === tab;
+}
+
+function tabCount(tab) {
+  let n = 0;
+  for (const name of projects.keys()) if (inTab(name, tab)) n += 1;
+  return n;
+}
+
+function renderTabBar() {
+  if (activeTab !== TAB_ALL && activeTab !== TAB_NONE && !tabsState.tabs.some((x) => x.id === activeTab)) {
+    activeTab = TAB_ALL; // 지워진 탭을 기억하고 있던 경우
+  }
+  tabbar.innerHTML = '';
+  const make = (id, label, user) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab' + (id === activeTab ? ' active' : '');
+    b.dataset.tab = id;
+    const text = document.createElement('span');
+    text.textContent = label;
+    const count = document.createElement('span');
+    count.className = 'tab-count';
+    count.textContent = String(tabCount(id));
+    b.append(text, count);
+    b.addEventListener('click', () => setActiveTab(id));
+    if (id !== TAB_ALL) b.classList.add('droppable'); // 카드를 놓을 수 있는 탭
+    if (user) {
+      b.draggable = true;
+      b.title = t('tabUserTitle');
+      b.addEventListener('dblclick', () => renameTab(id));
+      const del = document.createElement('span');
+      del.className = 'tab-del';
+      del.textContent = '×';
+      del.title = t('tabDelete');
+      del.addEventListener('click', (e) => { e.stopPropagation(); deleteTab(id); });
+      b.appendChild(del);
+    } else if (id === TAB_NONE) {
+      b.title = t('tabNoneTitle');
+    }
+    tabbar.appendChild(b);
+  };
+  make(TAB_ALL, t('tabAll'), false);
+  make(TAB_NONE, t('tabNone'), false);
+  for (const x of tabsState.tabs) make(x.id, x.name, true);
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'tab tab-add';
+  add.textContent = '+';
+  add.title = t('tabAdd');
+  add.addEventListener('click', addTab);
+  tabbar.appendChild(add);
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'small order-reset';
+  reset.textContent = t('orderReset');
+  reset.title = t('orderResetTitle');
+  reset.hidden = !customOrder;
+  reset.addEventListener('click', resetOrder);
+  tabbar.appendChild(reset);
+}
+
+function applyTabFilter() {
+  let shown = 0;
+  for (const card of grid.querySelectorAll('.card')) {
+    const vis = inTab(card.dataset.name, activeTab);
+    card.hidden = !vis;
+    if (vis) shown += 1;
+  }
+  for (const h of grid.querySelectorAll('.grid-section')) {
+    h.hidden = !grid.querySelector(`.card[data-group="${h.dataset.group}"]:not([hidden])`);
+  }
+  let empty = grid.querySelector('.tab-empty');
+  if (!shown && projects.size) {
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.className = 'tab-empty';
+      grid.appendChild(empty);
+    }
+    empty.textContent = t('tabEmpty');
+  } else if (empty) {
+    empty.remove();
+  }
+}
+
+async function saveTabs(next) {
+  const prev = tabsState;
+  tabsState = next;
+  renderTabBar();
+  applyTabFilter();
+  try {
+    const res = await fetch('/api/tabs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(next),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    return true;
+  } catch {
+    tabsState = prev; // 저장 실패 → 화면도 되돌린다
+    renderTabBar();
+    applyTabFilter();
+    showBanner(t('tabsSaveFail'));
+    return false;
+  }
+}
+
+// 카드를 받은 탭을 초록으로 깜빡이고, 탭 줄에 "✓ 카드 → 탭" 안내를 잠깐 띄운다.
+function showReceived(tabId, cardName) {
+  const tab = tabbar.querySelector(`.tab[data-tab="${CSS.escape(tabId)}"]`);
+  if (tab) {
+    tab.classList.add('received');
+    tab.addEventListener('animationend', () => tab.classList.remove('received'), { once: true });
+  }
+  const label = tabId === TAB_NONE ? t('tabNone') : tabsState.tabs.find((x) => x.id === tabId)?.name ?? '';
+  const toast = document.createElement('span');
+  toast.className = 'tab-toast';
+  toast.textContent = t('tabMoved', cardName, label);
+  tabbar.querySelector('.tab-add')?.after(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+async function addTab() {
+  const name = ((await dialogPrompt(t('tabAddPrompt'))) || '').trim();
+  if (!name) return;
+  const id = 't' + Date.now().toString(36);
+  await saveTabs({ tabs: [...tabsState.tabs, { id, name }], assign: { ...tabsState.assign } });
+  setActiveTab(id);
+}
+
+async function renameTab(id) {
+  const cur = tabsState.tabs.find((x) => x.id === id);
+  if (!cur) return;
+  const name = ((await dialogPrompt(t('tabRenamePrompt'), { value: cur.name })) || '').trim();
+  if (!name || name === cur.name) return;
+  await saveTabs({ tabs: tabsState.tabs.map((x) => (x.id === id ? { id, name } : x)), assign: { ...tabsState.assign } });
+}
+
+async function deleteTab(id) {
+  const cur = tabsState.tabs.find((x) => x.id === id);
+  if (!cur) return;
+  if (!(await dialogConfirm(t('tabDeleteConfirm', cur.name, tabCount(id))))) return;
+  const assign = Object.fromEntries(Object.entries(tabsState.assign).filter(([, v]) => v !== id));
+  if (activeTab === id) activeTab = TAB_ALL;
+  await saveTabs({ tabs: tabsState.tabs.filter((x) => x.id !== id), assign });
+}
+
+// 카드 → 탭(사용자 탭/미분류) 놓기, 사용자 탭끼리 순서 바꾸기
+const dropTargetOf = (e) => {
+  const tab = e.target.closest?.('.tab[data-tab]');
+  if (!tab) return null;
+  const id = tab.dataset.tab;
+  if (dragCard) return id === TAB_ALL ? null : tab;
+  if (dragTab) return tab.draggable && tab !== dragTab ? tab : null;
+  return null;
+};
+
+tabbar.addEventListener('dragstart', (e) => {
+  const tab = e.target.closest?.('.tab[draggable="true"]');
+  if (!tab) return;
+  dragTab = tab;
+  tab.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', tab.dataset.tab);
+});
+
+tabbar.addEventListener('dragover', (e) => {
+  const tab = dropTargetOf(e);
+  if (!tab) return;
+  e.preventDefault();
+  for (const x of tabbar.querySelectorAll('.drop-target')) if (x !== tab) x.classList.remove('drop-target');
+  tab.classList.add('drop-target');
+});
+
+tabbar.addEventListener('dragleave', (e) => {
+  const tab = e.target.closest?.('.tab');
+  if (tab && !tab.contains(e.relatedTarget)) tab.classList.remove('drop-target');
+});
+
+tabbar.addEventListener('drop', (e) => {
+  const tab = dropTargetOf(e);
+  for (const x of tabbar.querySelectorAll('.drop-target')) x.classList.remove('drop-target');
+  if (!tab) return;
+  e.preventDefault();
+  const target = tab.dataset.tab;
+  if (dragCard) {
+    droppedOnTab = true;
+    const name = dragCard.dataset.name;
+    const assign = { ...tabsState.assign };
+    if (target === TAB_NONE) delete assign[name];
+    else assign[name] = target;
+    if (assign[name] === tabsState.assign[name]) return;
+    saveTabs({ tabs: tabsState.tabs, assign }).then((ok) => { if (ok) showReceived(target, name); });
+  } else if (dragTab) {
+    const from = dragTab.dataset.tab;
+    const tabs = tabsState.tabs.filter((x) => x.id !== from);
+    const moved = tabsState.tabs.find((x) => x.id === from);
+    const r = tab.getBoundingClientRect();
+    const at = tabs.findIndex((x) => x.id === target) + (e.clientX > r.left + r.width / 2 ? 1 : 0);
+    tabs.splice(at, 0, moved);
+    saveTabs({ tabs, assign: tabsState.assign });
+  }
+});
+
+tabbar.addEventListener('dragend', () => {
+  if (dragTab) dragTab.classList.remove('dragging');
+  dragTab = null;
+});
 
 function relativeTime(iso) {
   if (!iso) return t('noCommit');
