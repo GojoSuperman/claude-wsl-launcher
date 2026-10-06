@@ -29,6 +29,7 @@ export function resolveCmd(env = process.env, existsSync = fs.existsSync) {
 /**
  * 새 WSL 콘솔 창에서 claude 를 띄우는 cmd.exe 인자 배열 생성 (순수).
  * cont=true → claude --continue, false → claude
+ * opts.accountDir → --account <폴더>(추가 계정), opts.label → --label <이름>(탭 제목·안내)
  *
  * `cmd /c start "" wsl.exe ...` — start 의 첫 따옴표 인자는 창 제목이므로 빈 문자열을
  * 자리채움으로 넣는다. 인자별 인용은 WSL interop 이 공백 포함 인자를 자동으로 큰따옴표로
@@ -39,8 +40,16 @@ export function resolveCmd(env = process.env, existsSync = fs.existsSync) {
  * 이유: 다단 호출에서 인라인 복합 명령이 망가지고, 그렇게 띄운 bash -lic 가 비대화형으로
  * 잡혀 nvm 이 로드되지 않아 `claude: command not found` 가 났다. (scripts/launch-claude.sh 참고)
  */
-export function buildStartArgs(distro, projectPath, cont, scriptPath = LAUNCH_SCRIPT) {
+/** cmd.exe 가 특수하게 해석하는 문자 제거 — 별명이 `cmd /c start` 인자로 들어가므로 */
+export function safeArg(s) {
+  return String(s).replace(/[&|<>^"%!]/g, '');
+}
+
+export function buildStartArgs(distro, projectPath, cont, scriptPath = LAUNCH_SCRIPT, opts = {}) {
   const args = ['/c', 'start', '', 'wsl.exe', '-d', distro, '--cd', projectPath, '--', 'bash', scriptPath];
+  if (opts.accountDir) args.push('--account', opts.accountDir);
+  const label = opts.label ? safeArg(opts.label) : '';
+  if (label) args.push('--label', label);
   if (cont) args.push('--continue');
   return args;
 }
@@ -48,13 +57,16 @@ export function buildStartArgs(distro, projectPath, cont, scriptPath = LAUNCH_SC
 /**
  * 실제 새 창 띄우기 (부수효과). 성공적으로 spawn 했으면 resolve.
  * spawn 자체 실패(ENOENT 등)는 reject.
+ * LAUNCHER_NO_WINDOW=1 이면(브라우저 테스트용) 창을 띄우지 않고 인자만 로그로 남긴다.
  */
-export function launch(distro, projectPath, cont) {
+export function launch(distro, projectPath, cont, opts = {}) {
+  const args = buildStartArgs(distro, projectPath, cont, LAUNCH_SCRIPT, opts);
+  if (process.env.LAUNCHER_NO_WINDOW) {
+    console.log(`[launch] (창 생략) ${args.slice(4).join(' ')}`);
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
-    const child = spawn(resolveCmd(), buildStartArgs(distro, projectPath, cont), {
-      detached: true,
-      stdio: 'ignore',
-    });
+    const child = spawn(resolveCmd(), args, { detached: true, stdio: 'ignore' });
     child.once('error', reject);
     // spawn 직후 에러가 없으면 성공으로 간주하고 분리
     child.unref();

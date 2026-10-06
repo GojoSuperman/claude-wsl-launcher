@@ -5,6 +5,10 @@ import { pickFolder } from './folder-picker.js';
 import { classify } from './sync-classify.js';
 import { computeCardStatus } from './card-status.js';
 import { groupProjects } from './project-group.js';
+import {
+  initAccounts, setAccounts, getAccounts, accountFor, rememberLocal, shortLabel, fullLabel,
+  refreshAccounts, addAccountFlow, openAccountsModal, removeAccountFlow,
+} from './accounts.js';
 
 const grid = document.getElementById('grid');
 let customOrder = false; // 드래그로 정한 카드 순서가 있으면 '이름순 정렬' 버튼 표시
@@ -120,6 +124,7 @@ async function loadProjects() {
     showBanner(t('connectFail'));
     return;
   }
+  setAccounts(data.accounts, data.lastByProject);
   projects.clear();
   for (const p of data.projects) projects.set(p.name, p); // 상태 조회용 — 렌더 전에 먼저 채움
   // GitHub 연결 여부로 두 그룹(저장된 순서, 없으면 이름순) → 섹션 헤더 + 카드
@@ -650,11 +655,11 @@ function renderCard(p) {
   const launchBtn = document.createElement('button');
   launchBtn.type = 'button';
   launchBtn.className = 'launch';
-  launchBtn.textContent = p.hasSession ? t('launchContinue') : t('launchNew');
+  setLaunchLabel(launchBtn, p);
   launchBtn.addEventListener('click', () => doLaunch(p.name, launchBtn, card));
   const syncSlot = document.createElement('span');
   syncSlot.className = 'sync-actions';
-  actions.append(launchBtn, syncSlot);
+  actions.append(launchGroup(p.name, launchBtn, card), syncSlot);
 
   // 보조 액션: 메모 / 삭제 (SVG 아이콘 + 한글 라벨)
   const actionsSecondary = document.createElement('div');
@@ -754,34 +759,133 @@ function renderStatus(card) {
   }
 }
 
-async function doLaunch(name, btn, card) {
+// 실행 버튼 글자: 기본 문구 + (계정이 2개 이상이면) ' · 계정 이름'
+function setLaunchLabel(btn, p) {
+  btn.textContent = p.hasSession ? t('launchContinue') : t('launchNew');
+  btn.removeAttribute('title');
+  if (getAccounts().length > 1) {
+    const s = document.createElement('span');
+    s.className = 'acct-suffix';
+    const label = shortLabel(accountFor(p.name));
+    s.textContent = `· ${label}`;
+    btn.title = label; // 말줄임돼도 마우스를 올리면 전체 이름
+    btn.appendChild(s);
+  }
+}
+function refreshLaunchLabels() {
+  for (const btn of grid.querySelectorAll('.card .launch')) {
+    const p = projects.get(btn.closest('.card').dataset.name);
+    if (p) setLaunchLabel(btn, p);
+  }
+}
+initAccounts({ onChange: refreshLaunchLabels });
+
+// 메뉴가 보이는 영역(고정 탭 줄 아래 ~ 서버 콘솔 위) 안에 들어오게 펼친다:
+// 아래로 다 들어가면 아래, 아니면 위·아래 중 넓은 쪽으로 펼치고 모자란 만큼 메뉴 안에서 스크롤.
+function placeMenu(menu) {
+  menu.classList.remove('up');
+  menu.style.maxHeight = '';
+  const drawer = document.getElementById('console-drawer');
+  const bottomLimit = drawer ? drawer.getBoundingClientRect().top : window.innerHeight;
+  const topLimit = tabbar.getBoundingClientRect().bottom;
+  const anchor = menu.parentElement.getBoundingClientRect();
+  const h = menu.getBoundingClientRect().height;
+  const below = bottomLimit - anchor.bottom - 8;
+  const above = anchor.top - topLimit - 8;
+  if (h <= below) return;
+  if (above > below) menu.classList.add('up');
+  const room = Math.max(above, below);
+  if (h > room) menu.style.maxHeight = `${Math.max(room, 60)}px`;
+}
+
+function launchGroup(name, launchBtn, card) {
+  const group = document.createElement('span');
+  group.className = 'launch-group';
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'launch-more';
+  more.textContent = '▾';
+  more.title = t('launchProfileTitle');
+  more.setAttribute('aria-haspopup', 'menu');
+  const menu = document.createElement('div');
+  menu.className = 'launch-menu';
+  menu.setAttribute('role', 'menu');
+  menu.hidden = true;
+  const fill = () => {
+    menu.innerHTML = '';
+    const cur = accountFor(name).id;
+    const item = (content, onPick) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'menuitem');
+      b.append(...content);
+      b.addEventListener('click', () => { menu.hidden = true; onPick(); });
+      menu.appendChild(b);
+    };
+    for (const a of getAccounts()) {
+      const mark = document.createElement('span');
+      mark.className = 'acct-mark';
+      mark.textContent = a.id === cur ? '●' : '○';
+      const text = document.createElement('span');
+      text.textContent = fullLabel(a);
+      item([mark, text], () => doLaunch(name, launchBtn, card, a.id));
+      menu.lastChild.classList.add('acct-item');
+    }
+    menu.appendChild(document.createElement('hr'));
+    item([t('accountAdd')], addAccountFlow);
+    item([t('accountManage')], openAccountsModal);
+  };
+  const close = (e) => {
+    if (e.type === 'keydown' && e.key !== 'Escape') return;
+    if (e.type === 'click' && group.contains(e.target)) return;
+    menu.hidden = true;
+    document.removeEventListener('click', close);
+    document.removeEventListener('keydown', close);
+  };
+  more.addEventListener('click', () => {
+    if (menu.hidden) fill();
+    menu.hidden = !menu.hidden;
+    if (!menu.hidden) placeMenu(menu);
+    if (!menu.hidden) {
+      document.addEventListener('click', close);
+      document.addEventListener('keydown', close);
+    }
+  });
+  group.append(launchBtn, more, menu);
+  return group;
+}
+
+async function doLaunch(name, btn, card, accountId) {
   // 이미 이 PC 에서 실행 중이면 중복 실행 전에 확인(경고 후 허용)
   const p = projects.get(name);
   if (p && p.running && !(await dialogConfirm(t('launchRunningConfirm')))) return;
   hideBanner();
   btn.disabled = true;
-  const original = btn.textContent;
   try {
     const res = await fetch('/api/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, account: accountId }),
     });
     const data = await res.json();
     if (data.ok) {
+      rememberLocal(name, data.account.id);
+      if (p) setLaunchLabel(btn, p);
       const toast = document.createElement('span');
       toast.className = 'toast';
-      toast.textContent = t('launchToast');
+      toast.textContent = data.account.label ? t('launchToastAccount', data.account.label) : t('launchToast');
       card.querySelector('.actions').appendChild(toast);
       setTimeout(() => toast.remove(), 2500);
+    } else if (data.code === 'account-missing') {
+      await removeAccountFlow({ id: data.id, dir: data.dir }, { missing: true });
     } else {
+      if (data.error === 'unknown account') await refreshAccounts();
       showBanner(t('launchFail', data.error));
     }
   } catch {
     showBanner(t('launchReqFail'));
   } finally {
     btn.disabled = false;
-    btn.textContent = original;
   }
 }
 

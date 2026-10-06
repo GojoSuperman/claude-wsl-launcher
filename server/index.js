@@ -21,6 +21,10 @@ import { rename as renameProject } from './renamer.js';
 import { readAll as readNotes, setNote } from './notes.js';
 import { readOrder, writeOrder, renameInOrder } from './order.js';
 import { readTabs, writeTabs, renameInTabs } from './tabs.js';
+import {
+  DEFAULT_ID, readAccounts, listAccounts, accountLabel, addAccount, setAlias, removeAccount,
+  resolveLaunchAccount, rememberLast, renameInAccounts,
+} from './accounts.js';
 import { clone as cloneProject } from './cloner.js';
 import { listRepos, cloneRepo, parseRepos, deleteRepo } from './github.js';
 import { check as checkUpdate, update as runUpdate } from './updater.js';
@@ -61,6 +65,8 @@ const NOTES_FILE = path.join(
 const ORDER_FILE = path.join(path.dirname(NOTES_FILE), 'order.json');
 // 사용자가 만든 작업 탭 + 프로젝트별 탭 배정 (같은 폴더)
 const TABS_FILE = path.join(path.dirname(NOTES_FILE), 'tabs.json');
+// 여러 계정: 추가 계정 목록·별명·프로젝트별 마지막 계정 (같은 폴더)
+const ACCOUNTS_FILE = path.join(path.dirname(NOTES_FILE), 'accounts.json');
 
 const app = express();
 app.use(express.json());
@@ -85,7 +91,11 @@ app.get('/api/projects', async (req, res) => {
         note: notes[p.name] || '', // 메모(없으면 빈 문자열)
       }))
     );
-    res.json({ projects, order: readOrder(ORDER_FILE), tabs: readTabs(TABS_FILE) });
+    const accState = readAccounts(ACCOUNTS_FILE);
+    res.json({
+      projects, order: readOrder(ORDER_FILE), tabs: readTabs(TABS_FILE),
+      accounts: listAccounts(env.home, accState), lastByProject: accState.lastByProject,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -97,12 +107,73 @@ app.post('/api/launch', async (req, res) => {
   if (!full) {
     return res.status(400).json({ ok: false, error: 'unknown project' });
   }
+  // account: 계정 id. 생략하면 이 프로젝트가 마지막으로 쓴 계정(없으면 기본).
+  // 대화 기록은 계정끼리 공유되므로 이어서 여부 판정은 기본 계정 기준 그대로.
+  const state = readAccounts(ACCOUNTS_FILE);
+  const pick = resolveLaunchAccount(state, name, req.body?.account);
+  if (pick.error) {
+    rememberLast(ACCOUNTS_FILE, name, DEFAULT_ID);
+    return res.status(400).json({ ok: false, error: pick.error });
+  }
+  const list = listAccounts(env.home, state);
+  const acct = list.find((a) => a.id === pick.id);
+  if (!acct.exists) {
+    return res.status(409).json({ ok: false, code: 'account-missing', id: acct.id, dir: acct.dir });
+  }
+  const label = list.length > 1 ? accountLabel(acct) : '';
   const cont = hasSession(env.home, full);
   try {
-    await launch(env.distro, full, cont);
-    res.json({ ok: true, continued: cont });
+    await launch(env.distro, full, cont, { accountDir: acct.isDefault ? '' : acct.dir, label });
+    rememberLast(ACCOUNTS_FILE, name, acct.id);
+    res.json({ ok: true, continued: cont, account: { id: acct.id, label } });
   } catch (e) {
     res.status(500).json({ ok: false, error: `launch failed: ${e.message}` });
+  }
+});
+
+// ── 여러 계정 ──
+function accountsView() {
+  const state = readAccounts(ACCOUNTS_FILE);
+  return { accounts: listAccounts(env.home, state), lastByProject: state.lastByProject };
+}
+// 로그인 창: 그 계정으로 스캔 폴더에서 claude 실행(새 계정이면 claude 가 로그인 화면부터 띄운다)
+async function openLoginWindow(acct) {
+  await launch(env.distro, env.projectsRoot, false, { accountDir: acct.dir, label: accountLabel(acct) });
+}
+
+app.get('/api/accounts', (req, res) => {
+  res.json(accountsView());
+});
+
+app.post('/api/accounts/add', async (req, res) => {
+  const r = addAccount(env.home, ACCOUNTS_FILE);
+  if (!r.ok) return res.json(r);
+  try {
+    await openLoginWindow(r.account);
+    res.json({ ok: true, account: r.account });
+  } catch (e) {
+    // 계정은 만들어졌으니 유지 — 관리 창의 [로그인 창 열기]로 다시 시도
+    res.json({ ok: true, account: r.account, loginError: e.message });
+  }
+});
+
+app.post('/api/accounts/alias', (req, res) => {
+  res.json(setAlias(ACCOUNTS_FILE, req.body?.id, req.body?.alias));
+});
+
+app.post('/api/accounts/remove', (req, res) => {
+  res.json(removeAccount(ACCOUNTS_FILE, req.body?.id));
+});
+
+app.post('/api/accounts/login', async (req, res) => {
+  const acct = accountsView().accounts.find((a) => a.id === req.body?.id && !a.isDefault);
+  if (!acct) return res.status(400).json({ ok: false, error: 'unknown account' });
+  if (!acct.exists) return res.status(409).json({ ok: false, code: 'account-missing', id: acct.id, dir: acct.dir });
+  try {
+    await openLoginWindow(acct);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
@@ -315,9 +386,10 @@ app.post('/api/projects/rename', async (req, res) => {
       isSelf,
     });
     if (r.ok) {
-      // 순서 자리·탭 배정 유지
+      // 순서 자리·탭 배정·마지막 계정 유지
       renameInOrder(ORDER_FILE, req.body.name, req.body.newName);
       renameInTabs(TABS_FILE, req.body.name, req.body.newName);
+      renameInAccounts(ACCOUNTS_FILE, req.body.name, req.body.newName);
     }
     res.json(r);
   } catch (e) {

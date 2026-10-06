@@ -82,6 +82,42 @@ h1 { font-size: 1.25rem; margin: 0; }
 .card .remote .remote-behind { color: #e67e22; }
 /* 버튼 행은 카드 맨 아래에 고정(margin-top:auto). 그리드 셀이 같은 행의 최대 높이로 늘어나므로 카드마다 버튼 위치가 정렬됨 */
 .card .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: auto; }
+/* 실행 버튼 + ▾ 계정 선택: 한 덩어리 버튼처럼 붙이고 메뉴는 아래로 펼침 */
+.launch-group { position: relative; display: inline-flex; }
+.launch-group .launch { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.launch-group .launch-more { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left-color: #fff6; padding: .5rem .5rem; }
+.launch-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 100%;
+  display: flex; flex-direction: column; padding: 4px; border-radius: 8px;
+  border: 1px solid #8886; background: Canvas; color: CanvasText; box-shadow: 0 4px 14px #0003;
+}
+.launch-menu[hidden] { display: none; }
+.launch-menu button { background: transparent; color: inherit; border: none; text-align: left; white-space: nowrap; }
+.launch-menu button:hover { background: #4a90e233; }
+/* 계정 메뉴: 현재 계정 표시(●/○), 구분선, 추가·관리 항목 */
+.launch-menu .acct-item { display: flex; gap: .4rem; align-items: baseline; }
+.launch-menu .acct-mark { width: 1em; flex-shrink: 0; }
+.launch-menu .acct-sub { opacity: .6; font-size: .85em; }
+.launch-menu hr { border: 0; border-top: 1px solid #8885; margin: 4px 2px; }
+/* 실행 버튼 묶음은 카드 폭을 넘지 않고, 넘치면 계정 이름 부분만 말줄임(…) */
+.launch-group { max-width: 100%; }
+.launch-group .launch { display: inline-flex; align-items: baseline; min-width: 0; white-space: nowrap; }
+.launch .acct-suffix { opacity: .85; font-weight: 400; margin-left: .35em; min-width: 0; max-width: 10em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launch-group .launch-more { flex-shrink: 0; }
+/* 아래 공간이 모자라면 위로 펼침(app.js placeMenu) */
+.launch-menu.up { top: auto; bottom: calc(100% + 4px); }
+.launch-menu { overflow-y: auto; box-sizing: border-box; }
+/* 계정 관리 창 */
+.accounts-desc { font-size: .85rem; opacity: .8; margin: 0 0 .75rem; }
+.accounts-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+.acct-row { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; padding: .6rem .7rem; border: 1px solid #8885; border-radius: 8px; }
+.acct-row .acct-main { flex: 1 1 14rem; min-width: 0; }
+.acct-row .acct-email { font-weight: 600; overflow-wrap: anywhere; }
+.acct-row .acct-meta { font-size: .78rem; opacity: .7; overflow-wrap: anywhere; }
+.acct-row .acct-state.ok { color: #3fa45f; }
+.acct-row .acct-state.need { color: #d4a72c; }
+.acct-row button { padding: 4px 9px; font-size: 12.5px; border-radius: 6px; background: transparent; color: inherit; }
+.acct-row button.danger-lite { color: #e5534b; border-color: #e5534b66; }
 button { padding: .5rem .8rem; border-radius: 8px; border: 1px solid #8886; cursor: pointer; background: #4a90e2; color: #fff; }
 button:disabled { opacity: .5; cursor: default; }
 .header-actions { display: flex; gap: .5rem; align-items: center; }

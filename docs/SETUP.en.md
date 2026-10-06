@@ -137,6 +137,14 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 - Before renaming, a confirmation asks you to make sure no other claude window is editing that folder. A claude launched from a different folder that edits this one is not detected automatically.
 - On another PC, repeat steps 2 and 3 there. The code comes via git, but Node, claude and the shortcut are per-PC.
 
+### Using several Claude accounts (optional)
+
+Click **▾** next to a card's launch button → **＋ Add account**. A login window opens; log in there with another Claude account and close it. The account's email then appears in the ▾ menu.
+
+- Chat history, instructions (CLAUDE.md), settings, plugins, skills and MCP are shared with the default account; only login and usage are separate. So you can 'continue' the same project from any account.
+- Each project remembers the account it last used. The launch button and the terminal tab show the account name.
+- In **⚙ Manage accounts** you can give an account an alias or remove it from the list (the account folder `~/.claude-acct-N` and its login are not deleted).
+
 ---
 
 ## 6. Troubleshooting

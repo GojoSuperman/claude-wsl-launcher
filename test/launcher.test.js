@@ -1,7 +1,7 @@
 // test/launcher.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStartArgs, resolveCmd } from '../server/launcher.js';
+import { buildStartArgs, resolveCmd, safeArg } from '../server/launcher.js';
 
 const CMD_FALLBACK = '/mnt/c/Windows/System32/cmd.exe';
 
@@ -59,4 +59,25 @@ test('distro 와 경로가 인자에 포함', () => {
 test('공백·작은따옴표 경로도 인자 배열에 원형 그대로 (인용은 WSL interop 몫)', () => {
   const a = buildStartArgs('Ubuntu-24.04', "/home/g/projects/O'Brien my project", false);
   assert.equal(a[a.indexOf('--cd') + 1], "/home/g/projects/O'Brien my project");
+});
+
+test('buildStartArgs: 계정 폴더·라벨 → --account <폴더> --label <이름>, --continue 는 맨 뒤', () => {
+  const a = buildStartArgs('Ubuntu', '/home/g/projects/todo', true, '/x/launch-claude.sh',
+    { accountDir: '/home/g/.claude-acct-2', label: '수업용' });
+  assert.deepEqual(a.slice(-6), ['/x/launch-claude.sh', '--account', '/home/g/.claude-acct-2', '--label', '수업용', '--continue']);
+});
+
+test('buildStartArgs: 라벨만(기본 계정, 계정 여러 개) → --label 만', () => {
+  const a = buildStartArgs('Ubuntu', '/p', false, '/x/s.sh', { label: 'me@x.com' });
+  assert.deepEqual(a.slice(-3), ['/x/s.sh', '--label', 'me@x.com']);
+});
+
+test('buildStartArgs: 옵션 없으면 예전과 동일', () => {
+  assert.deepEqual(buildStartArgs('Ubuntu', '/p', false, '/x/s.sh').slice(-1), ['/x/s.sh']);
+});
+
+test('safeArg/buildStartArgs: 라벨의 cmd 특수문자는 빠진다', () => {
+  assert.equal(safeArg('A&B "C"|D%E^F<G>!'), 'AB CDEFG');
+  const a = buildStartArgs('Ubuntu', '/p', false, '/x/s.sh', { label: 'R&D "팀"' });
+  assert.deepEqual(a.slice(-2), ['--label', 'RD 팀']);
 });
