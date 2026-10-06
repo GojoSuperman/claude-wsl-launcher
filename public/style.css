@@ -216,19 +216,8 @@ body.drawer-open.drawer-collapsed { padding-bottom: calc(32px + 1rem); }
 .card .sync-actions { display: inline-flex; gap: .25rem; }
 .card .github-row[hidden] { display: none; }
 
-/* 글로벌 CLAUDE.md 동기화 모달 */
+/* 모달 안내문 (삭제·메모·업데이트 모달 공통) */
 .global-status { font-size: .9rem; line-height: 1.5; color: #c7cdd6; margin: .2rem 0 .6rem; }
-.global-diff-toggle { background: transparent; color: inherit; border: 1px solid #8886; border-radius: 6px; padding: .2rem .6rem; font-size: .8rem; }
-.global-diff-toggle[hidden] { display: none; }
-.global-diff {
-  margin: .5rem 0; padding: .6rem .7rem; max-height: 40vh; overflow: auto;
-  background: #11161d; border: 1px solid #3a424d; border-radius: 6px;
-  font-family: ui-monospace, monospace; font-size: .78rem; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
-}
-.global-diff.hidden { display: none; }
-.global-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .7rem 0 .4rem; }
-.global-actions button.recommend { box-shadow: 0 0 0 2px #4a90e2; font-weight: 600; }
-.global-note { font-size: .76rem; color: #8b94a0; margin-top: .3rem; }
 
 /* 새 프로젝트 모달: 버튼 행 */
 .create-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: .6rem; }
@@ -247,7 +236,7 @@ body.drawer-open.drawer-collapsed { padding-bottom: calc(32px + 1rem); }
 #delete-submit:disabled { opacity: .5; cursor: default; }
 
 /* 라이트 모드 가독성: 어두운 모달 기준으로 잡힌 연한 글자색이 흰 배경(Canvas)에서 대비 미달 →
-   라이트 모드에서만 진하게(다크 모드는 기존 색 유지). global/create/delete 모달 공통 적용. */
+   라이트 모드에서만 진하게(다크 모드는 기존 색 유지). create/delete 등 모달 공통 적용. */
 @media (prefers-color-scheme: light) {
   .global-status { color: #4b5563; }
   .import-status { color: #6b7280; }

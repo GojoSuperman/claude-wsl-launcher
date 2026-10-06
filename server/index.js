@@ -382,6 +382,7 @@ app.post('/api/projects/rename', async (req, res) => {
       home: env.home,
       name: req.body?.name,
       newName: req.body?.newName,
+      notesFile: NOTES_FILE,
       isRunning: (full) => isRunning(runSet, full),
       isSelf,
     });

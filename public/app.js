@@ -11,16 +11,6 @@ import {
 } from './accounts.js';
 
 const grid = document.getElementById('grid');
-let customOrder = false; // 드래그로 정한 카드 순서가 있으면 '이름순 정렬' 버튼 표시
-let tabsState = { tabs: [], assign: {} }; // 사용자 작업 탭 + 프로젝트별 탭 배정 (서버 tabs.json)
-const tabbar = document.getElementById('tabbar');
-// 탭 줄을 헤더 바로 아래에 고정하려고 실제 헤더 높이를 CSS 변수로 넘긴다(창 너비에 따라 헤더가 두 줄이 되기도 함).
-{
-  const header = document.querySelector('header');
-  const sync = () => document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
-  sync();
-  new ResizeObserver(sync).observe(header);
-}
 const banner = document.getElementById('banner');
 const refreshBtn = document.getElementById('refresh');
 const newProjectBtn = document.getElementById('new-project');
@@ -46,6 +36,16 @@ const checked = new Set();
 const syncCache = new Map();
 // 프로젝트명 → 서버 프로젝트 객체(p). renderStatus 가 git 정보를 참조.
 const projects = new Map();
+let customOrder = false; // 드래그로 정한 카드 순서가 있으면 '이름순 정렬' 버튼 표시
+let tabsState = { tabs: [], assign: {} }; // 사용자 작업 탭 + 프로젝트별 탭 배정 (서버 tabs.json)
+const tabbar = document.getElementById('tabbar');
+// 탭 줄을 헤더 바로 아래에 고정하려고 실제 헤더 높이를 CSS 변수로 넘긴다(창 너비에 따라 헤더가 두 줄이 되기도 함).
+{
+  const header = document.querySelector('header');
+  const sync = () => document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
+  sync();
+  new ResizeObserver(sync).observe(header);
+}
 
 function showBanner(msg) {
   banner.textContent = msg;
@@ -731,6 +731,8 @@ function renderStatus(card) {
 
   // 실행 잠금
   const lb = card.querySelector('button.launch');
+  const lm = card.querySelector('button.launch-more');
+  if (lm) lm.disabled = st.locked;
   if (lb) {
     lb.disabled = st.locked;
     if (st.locked) lb.title = t('launchLocked');
@@ -759,6 +761,7 @@ function renderStatus(card) {
   }
 }
 
+// 실행 버튼 + ▾ 계정 메뉴 (본체 = 이 프로젝트가 마지막으로 쓴 계정, ▾ = 계정 고르기·추가·관리).
 // 실행 버튼 글자: 기본 문구 + (계정이 2개 이상이면) ' · 계정 이름'
 function setLaunchLabel(btn, p) {
   btn.textContent = p.hasSession ? t('launchContinue') : t('launchNew');

@@ -60,9 +60,13 @@ export async function aheadBehind(dir) {
   };
 }
 
-/** origin URL → 'owner/repo' (GitHub 만). 순수. 비GitHub/빈값 → null. */
+/**
+ * origin URL 문자열에서 'owner/repo' 추출 (순수). github.com 이 아니면 null.
+ * ssh(git@github.com:o/r.git) / https(https://github.com/o/r(.git)) 모두 지원.
+ */
 export function parseOriginRepo(url) {
-  const s = (url || '').toString().trim();
+  if (typeof url !== 'string') return null;
+  const s = url.trim();
   if (!s) return null;
   const m = s.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
   return m ? `${m[1]}/${m[2]}` : null;

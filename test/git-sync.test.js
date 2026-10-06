@@ -86,3 +86,13 @@ test('fetch: 원격 없는 저장소 → ok:true (git 은 no-op 성공)', async 
   const r = await gitFetch(dir);
   assert.equal(r.ok, true);
 });
+
+test('buildGitArgs: gh 로그인돼 있으면 github SSH→https 재작성 + gh 자격증명, 아니면 사용자 git 설정 그대로', async () => {
+  const { buildGitArgs } = await import('../server/git-sync.js');
+  const on = buildGitArgs('/p', ['fetch', '--quiet'], true);
+  assert.deepEqual(on.slice(0, 2), ['-C', '/p']);
+  assert.ok(on.includes('url.https://github.com/.insteadOf=git@github.com:'));
+  assert.ok(on.includes('credential.helper=!gh auth git-credential'));
+  assert.deepEqual(on.slice(-2), ['fetch', '--quiet']);
+  assert.deepEqual(buildGitArgs('/p', ['fetch', '--quiet'], false), ['-C', '/p', 'fetch', '--quiet']);
+});
