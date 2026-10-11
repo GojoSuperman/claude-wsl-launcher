@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { listDir, candidates } from '../server/folders.js';
+import { listDir, windowsHomes, windowsPlaces } from '../server/folders.js';
 
 function fakeHome() {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fold-'));
@@ -33,8 +33,31 @@ test('listDir: 루트의 parent 는 null, 상대경로/없음/파일은 오류',
   assert.equal(listDir(path.join(home, 'dev', 'file.txt')).error, 'not a directory');
 });
 
-test('candidates: 저장소를 품은 폴더를 개수 내림차순, 자기 자신이 저장소면 제외', () => {
-  const home = fakeHome();
-  assert.deepEqual(candidates(home), [{ path: path.join(home, 'dev'), repos: 2 }, { path: path.join(home, 'work'), repos: 1 }]);
-  assert.deepEqual(candidates('relative'), []);
+test('windowsHomes: 시스템 계정 폴더·파일은 빼고 실제 사용자 폴더만', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'wusers-'));
+  for (const n of ['All Users', 'Default', 'Default User', 'Public', 'defaultuser100000', 'defaultuser100000.PC.000', 'carol', 'Bob']) {
+    fs.mkdirSync(path.join(base, n));
+  }
+  fs.writeFileSync(path.join(base, 'desktop.ini'), '');
+  assert.deepEqual(windowsHomes(base), [path.join(base, 'Bob'), path.join(base, 'carol')]);
+  assert.deepEqual(windowsHomes(path.join(base, 'nope')), []);
+});
+
+test('windowsPlaces: 사용자별 바탕 화면·문서·다운로드(OneDrive 우선) + 드라이브', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wplace-'));
+  const mk = (p) => fs.mkdirSync(path.join(root, p), { recursive: true });
+  mk('Users/carol/OneDrive/Desktop'); mk('Users/carol/OneDrive/문서'); mk('Users/carol/Downloads'); mk('Users/carol/Documents');
+  mk('Users/Public/Desktop');
+  mk('c'); mk('d'); mk('wsl'); mk('wslg');
+  fs.writeFileSync(path.join(root, 'e'), '');
+  const u = path.join(root, 'Users', 'carol');
+  const r = windowsPlaces({ usersBase: path.join(root, 'Users'), mntBase: root });
+  assert.deepEqual(r.favorites, [
+    { kind: 'desktop', path: path.join(u, 'OneDrive', 'Desktop') },
+    { kind: 'downloads', path: path.join(u, 'Downloads') },
+    { kind: 'documents', path: path.join(u, 'OneDrive', '문서') },
+    { kind: 'home', path: u },
+  ]);
+  assert.deepEqual(r.drives, [{ letter: 'C', path: path.join(root, 'c') }, { letter: 'D', path: path.join(root, 'd') }]);
+  assert.deepEqual(windowsPlaces({ usersBase: path.join(root, 'nope'), mntBase: path.join(root, 'nope') }), { favorites: [], drives: [] });
 });

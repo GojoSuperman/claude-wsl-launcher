@@ -61,9 +61,10 @@ cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd 
 bash scripts/setup.sh
 ```
 
-`setup.sh` finds what's missing (Node, etc.), offers to install it, lets you pick your projects folder, and creates the desktop shortcut. When it finishes, **double-click the shortcut**.
+`setup.sh` finds what's missing (Node, etc.), offers to install it, creates the work folder (`~/projects`), and creates the desktop shortcut. When it finishes, **double-click the shortcut**.
 
-- Keep the tool itself in your home (`~`), **not inside your projects folder** like `~/projects`.
+- Projects live in the **work folder `~/projects`** inside WSL (fixed). Bring projects from elsewhere with `⬇ Import` in the dashboard.
+- Keep the tool itself in your home (`~`), **not inside** `~/projects`.
 - Want to check each step yourself? → **[Setup Guide](docs/SETUP.en.md)**
 
 ---
@@ -90,10 +91,12 @@ Double-click the desktop shortcut and the dashboard opens in your browser. One f
 |---|---|
 | **Launch claude** | Starts claude in a new window for that folder, **continuing** your previous conversation if there is one. |
 | **Check GitHub → Pull** | Checks whether GitHub has newer changes and brings them to your PC. |
-| **⬇ Import** | Pick one of your GitHub repositories and clone it. You can also paste a URL. |
+| **⬇ Import** | Bring a project into the work folder from three tabs: **GitHub** (clone your repo) / **💻 My PC** (copy a Windows folder such as Desktop or Documents — the original stays) / **🐧 WSL** (move another folder from your home). |
 | **+ New project** | Creates a new folder. |
 | **Note** | A one-line note per card, for when you can't tell projects apart. |
 | **Rename / Delete** | Renames or removes the folder, optionally handling the GitHub repository too. |
+| **🗑 Trash** | Restore deleted projects or delete them forever (next to the work folder; shown only when something was deleted). |
+| **✨ What's new** | Introduces what changed in an update. It opens automatically the first time after an update. |
 | **⟳ Update** | Updates this tool itself. |
 | **Shut down** | Stops it. Closing the window also stops it after about 10 seconds. |
 
@@ -185,17 +188,24 @@ Distro name, home and desktop paths are **detected at runtime**, so there is not
 - **Launch claude**: opens claude in a **new WSL window** for that folder (`--continue` when history exists). Native WSL launch, so no repeated "trust this folder?" prompts.
 - **Check remote / Pull**: `git fetch`, then `git pull --ff-only` if behind.
 - **New project**: creates `~/projects/<name>` and runs `git init`.
-- **Import from GitHub**: lists your repositories, searchable, and clones the one you pick (requires gh login). Repositories you already have are marked. You can also paste a GitHub URL directly.
-- **Delete a project**: moves the local folder to the trash, and optionally **deletes the GitHub repository too** (checkbox, requires gh login). Running projects and the tool's own folder cannot be deleted; if the GitHub delete fails the local folder is kept.
+- **Import (3 tabs)**:
+  - **GitHub**: lists your repositories, searchable, and clones the one you pick (requires gh login). Repositories you already have are marked. You can also paste a GitHub URL directly.
+  - **💻 My PC**: pick a folder from Desktop, Documents, Downloads or a drive and **copy** it into `~/projects` (original kept, `node_modules` skipped, files differing only in line endings cleaned up).
+  - **🐧 WSL**: **move** a folder from your home into `~/projects`.
+  - claude conversation history and per-folder claude settings (folder trust, local MCP) come along. `.git` is kept so the GitHub link stays, and you are told if the same repo is already a card.
+- **Delete a project + 🗑 Trash**: moves the local folder to the trash; restore or delete forever from `🗑 Trash (n)` next to the work folder. Optionally **deletes the GitHub repository too** (checkbox, requires gh login). Running projects and the tool's own folder cannot be deleted; if the GitHub delete fails the local folder is kept.
+- **Team projects**: 👑 lead / 👥 member / 👀 read-only badges on shared repos, a to-do strip based on main and PRs when you check GitHub, and an ⓘ team info window (status, PRs, copyable text for claude).
+- **Protection while running**: Pull on a card where claude is open shows a warning; opening the same project again starts a new conversation.
+- **✨ What's new**: after an update, the first launch introduces what changed; reopen it from the header.
 - **Notes**: a one-line note per card (stored in `~/.local/state/project-launcher/notes.json`).
-- **Rename project**: renames the folder and moves the claude history folder along (keeps `--continue`). If origin is GitHub, runs `gh repo rename` to rename the repo and update the remote URL.
+- **Rename project**: renames the folder and moves the claude history folder and per-folder claude settings along (keeps `--continue`). If origin is GitHub, runs `gh repo rename` to rename the repo and update the remote URL.
 - **Name rule**: letters, digits, `-`, `_` and `.` only (GitHub repo rule).
 - **Self-update**: `⟳ Update` → check → `git pull --ff-only` + `npm install` → shut down to apply. If your local edits overlap the incoming changes, or the history has diverged, it **changes nothing** and tells you why.
 - **GitHub public/private badge and switch**: click the badge to switch via `gh repo edit --visibility` after a confirmation.
 - **Server console (bottom panel)**: this server's log, streamed live (read-only).
 - **Auto shutdown**: closing the dashboard window stops the server after about 10 seconds (`AUTO_SHUTDOWN=0` disables).
 - **Light/dark theme**, **languages** (한국어 · English · 日本語), **in-app help** (`?` key).
-- **Projects folder pick/change**: priority is `PROJECTS_ROOT` > config file (`~/.config/project-launcher/config.json`) > `~/projects`.
+- **Fixed work folder**: `~/projects` inside WSL (created if missing). It is fixed to avoid the slowness and line-ending problems of working directly in Windows folders. Bring projects from elsewhere with `⬇ Import`.
 - **Port fallback**: if `41730` is busy, moves to `41731`–`41739`. Set one with `PORT=5000 npm start`.
 
 ### Why this approach
@@ -210,7 +220,7 @@ claude works properly and fast only when launched from a **native WSL path** (`~
 ### How it works
 
 - A browser alone cannot start a process on your PC, so a **small local server (Express) running inside WSL** does it.
-- The server scans your projects folder, reads git status, and calls `cmd.exe /c start` with `wsl.exe` to open claude in a **new WSL window**.
+- The server scans the work folder (`~/projects`), reads git status, and calls `cmd.exe /c start` with `wsl.exe` to open claude in a **new WSL window**.
 - The server tees its own `stdout/stderr` into the `/ws/console` WebSocket for the bottom panel. When every such connection is gone it shuts itself down after a grace period.
 
 ### Security

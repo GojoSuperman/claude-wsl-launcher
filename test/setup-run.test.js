@@ -23,7 +23,7 @@ test('setup.sh: dry-run 으로 doctor → 의존성 → 단축키 생략 순서�
   assert.ok(!r.stdout.includes('added') && !r.stdout.includes('단축키 생성 중'), '실제 설치/단축키 미실행');
 });
 
-test('setup.sh --yes: 비대화형으로 후보 폴더를 자동 선택하고 설정 파일에 기록', () => {
+test('setup.sh --yes: 작업 폴더 ~/projects 를 만들고(설정 파일은 안 씀), 홈의 다른 저장소 폴더는 가져오기로 안내', () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'shome-'));
   fs.mkdirSync(path.join(home, 'dev', 'a', '.git'), { recursive: true });
   fs.mkdirSync(path.join(home, 'dev', 'b', '.git'), { recursive: true });
@@ -33,7 +33,8 @@ test('setup.sh --yes: 비대화형으로 후보 폴더를 자동 선택하고 �
     input: '',
     env: { ...process.env, HOME: home, XDG_CONFIG_HOME: xdg, DOCTOR_DRY_RUN: '', SETUP_NO_SHORTCUT: '1' },
   });
-  assert.ok(r.stdout.includes('[자동] 저장소가 가장 많은 1) 선택'), '자동 선택 문구');
-  const cfg = JSON.parse(fs.readFileSync(path.join(xdg, 'project-launcher', 'config.json'), 'utf8'));
-  assert.equal(cfg.projectsRoot, path.join(home, 'dev'));
+  assert.ok(fs.statSync(path.join(home, 'projects')).isDirectory(), '~/projects 생성');
+  assert.equal(fs.existsSync(path.join(xdg, 'project-launcher', 'config.json')), false, '예전 스캔 폴더 설정은 쓰지 않음');
+  assert.ok(r.stdout.includes('~/dev  (2)'), '다른 곳의 저장소 폴더 안내');
+  assert.ok(r.stdout.includes('⬇ 가져오기'), '가져오기 안내');
 });

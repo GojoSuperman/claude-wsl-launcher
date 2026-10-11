@@ -5,18 +5,23 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { detectEnv } from './env.js';
-import { configPath, writeConfig, validateRoot, normalizeRoot } from './config.js';
-import { listDir, candidates as folderCandidates } from './folders.js';
+import { normalizeRoot } from './config.js';
+import { listDir, windowsPlaces } from './folders.js';
 import { list } from './scanner.js';
 import { hasSession } from './session.js';
 import { resolveProject } from './paths.js';
 import { launch } from './launcher.js';
-import { status as gitStatus, aheadBehind, originRepo } from './git.js';
-import { createVisibilityLookup, setVisibility } from './github-visibility.js';
+import { status as gitStatus, aheadBehind, originRepo, defaultBranch as gitDefaultBranch, aheadBehindRef, localGithubUser } from './git.js';
+import { setVisibility } from './github-visibility.js';
+import { createRepoInfoLookup, createMeLookup } from './repo-info.js';
+import { prForBranch, openPrs } from './pr-status.js';
+import { computeRole, isTeamRole, infoForUser } from '../public/team-role.js';
 import { fetch as gitFetch, pull as gitPull } from './git-sync.js';
 import { runningPaths, isRunning } from './running.js';
 import { create as createProject } from './creator.js';
 import { trashLocal } from './deleter.js';
+import { listTrash, restoreTrash, purgeTrash, defaultTrashDir } from './trash.js';
+import { readSeen, writeSeen, userHistory } from './whats-new.js';
 import { rename as renameProject } from './renamer.js';
 import { readAll as readNotes, setNote } from './notes.js';
 import { readOrder, writeOrder, renameInOrder } from './order.js';
@@ -26,6 +31,7 @@ import {
   resolveLaunchAccount, rememberLast, renameInAccounts,
 } from './accounts.js';
 import { clone as cloneProject } from './cloner.js';
+import { importFolder, inspectImport } from './importer.js';
 import { listRepos, cloneRepo, parseRepos, deleteRepo } from './github.js';
 import { check as checkUpdate, update as runUpdate } from './updater.js';
 import { createConsoleStream } from './console-stream.js';
@@ -55,6 +61,8 @@ try {
   process.exit(1);
 }
 console.log(`[env] distro=${env.distro} projectsRoot=${env.projectsRoot} (${env.projectsRootSource})`);
+// 작업 폴더는 WSL 안의 ~/projects 로 고정 — 없으면 만든다
+try { fs.mkdirSync(env.projectsRoot, { recursive: true }); } catch (e) { console.warn('[env] 작업 폴더 생성 실패:', e.message); }
 
 // 프로젝트 메모 저장 파일 (launch.sh LOG_DIR 과 동일 관행: XDG_STATE_HOME 우선)
 const NOTES_FILE = path.join(
@@ -121,7 +129,8 @@ app.post('/api/launch', async (req, res) => {
     return res.status(409).json({ ok: false, code: 'account-missing', id: acct.id, dir: acct.dir });
   }
   const label = list.length > 1 ? accountLabel(acct) : '';
-  const cont = hasSession(env.home, full);
+  // 이미 claude 가 열려 있으면 두 번째 창은 새 대화로 — 같은 대화를 두 창이 따로 이어 가지 않게
+  const cont = hasSession(env.home, full) && !isRunning(runningPaths(), full);
   try {
     await launch(env.distro, full, cont, { accountDir: acct.isDefault ? '' : acct.dir, label });
     rememberLast(ACCOUNTS_FILE, name, acct.id);
@@ -184,7 +193,20 @@ app.post('/api/git/fetch', async (req, res) => {
     const r = await gitFetch(full);
     if (!r.ok) return res.json({ ok: false, error: r.error });
     const ab = await aheadBehind(full);
-    res.json({ ok: true, ahead: ab.ahead, behind: ab.behind });
+    const st = await gitStatus(full);
+    const { repo, info } = await teamInfoOf(full);
+    // 기본 브랜치: origin/HEAD → GitHub 기본 브랜치 → 모름(main 비교 생략)
+    const def = (await gitDefaultBranch(full)) || info?.defaultBranch || null;
+    const main = def ? await aheadBehindRef(full, `origin/${def}`) : null;
+    const team = isTeamRole(info?.role);
+    const onWork = st.branch && def && st.branch !== def;
+    res.json({
+      ok: true, ahead: ab.ahead, behind: ab.behind,
+      branch: st.branch, defaultBranch: def,
+      mainAhead: main ? main.ahead : null, mainBehind: main ? main.behind : null,
+      pr: team && onWork ? await prForBranch(repo, st.branch) : null,
+      openPrs: info?.role === 'leader' ? await openPrs(repo) : null,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -202,7 +224,21 @@ app.post('/api/git/pull', async (req, res) => {
 });
 
 // GitHub 공개/비공개 조회 (gh CLI, 캐시). names 배열 → { name: 'PUBLIC'|'PRIVATE'|null }
-const visibility = createVisibilityLookup();
+// GitHub 저장소 정보(공개 여부·소유자·권한·협업자·기본 브랜치) — 저장소당 GraphQL 1회, 10분 캐시
+const repoInfo = createRepoInfoLookup();
+const me = createMeLookup();
+/** 프로젝트 폴더 → { repo, info(+role) } . GitHub 아님/조회 실패면 info:null */
+async function teamInfoOf(full) {
+  const repo = await originRepo(full);
+  if (!repo) return { repo: null, info: null };
+  const info = await repoInfo.get(repo);
+  if (!info) return { repo, info: null };
+  // "나" = 이 폴더의 github.user 설정(계정 여럿인 PC) → 없으면 gh 활성 계정
+  const active = await me.get();
+  const who = (await localGithubUser(full)) || active;
+  const view = infoForUser(info, who, active); // 폴더 사용자가 활성 계정과 다르면 권한을 협업자 목록으로
+  return { repo, info: { ...view, repo, role: computeRole({ ...view, me: who }) } };
+}
 // 공개/비공개 전환: {name, visibility:'PUBLIC'|'PRIVATE'} → gh repo edit. 성공 시 캐시 무효화.
 app.post('/api/github/visibility/set', async (req, res) => {
   try {
@@ -211,7 +247,7 @@ app.post('/api/github/visibility/set', async (req, res) => {
     const repo = await originRepo(full);
     if (!repo) return res.json({ ok: false, error: 'no github remote' });
     const r = await setVisibility(repo, req.body?.visibility);
-    if (r.ok) visibility.invalidate(repo);
+    if (r.ok) repoInfo.invalidate(repo);
     res.json({ ...r, repo });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -222,48 +258,58 @@ app.post('/api/github/visibility', async (req, res) => {
   try {
     const names = Array.isArray(req.body?.names) ? req.body.names.slice(0, 200) : [];
     const out = {};
+    const info = {};
     // 동시 4개씩 — gh 호출 폭주 방지
     const queue = [...names];
     await Promise.all(Array.from({ length: 4 }, async () => {
       while (queue.length) {
         const name = queue.shift();
         const full = resolveProject(env.projectsRoot, name);
-        if (!full) { out[name] = null; continue; }
-        const repo = await originRepo(full);
-        out[name] = repo ? await visibility.get(repo) : null;
+        if (!full) { out[name] = null; info[name] = null; continue; }
+        const t = await teamInfoOf(full);
+        out[name] = t.info ? t.info.visibility : null;
+        info[name] = t.info;
       }
     }));
-    res.json({ ok: true, visibility: out });
+    res.json({ ok: true, visibility: out, info });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// 스캔 폴더 설정: 조회 / 변경(설정 파일에 저장 + 즉시 적용). PROJECTS_ROOT 환경변수가 있으면 변경 불가(env 우선).
+// 작업 폴더 조회. 작업 폴더는 ~/projects 고정(변경 불가).
 app.get('/api/config', (req, res) => {
   res.json({ ok: true, projectsRoot: env.projectsRoot, source: env.projectsRootSource, home: env.home });
 });
-// 폴더 선택창: 하위 폴더 목록(읽기 전용) / 프로젝트 폴더 후보
+// 가져오기 창 폴더 탐색: 하위 폴더 목록(읽기 전용)
 app.get('/api/folders', (req, res) => {
   const p = normalizeRoot(req.query?.path, env.home) || env.home;
   res.json(listDir(p));
 });
-app.get('/api/folders/candidates', (req, res) => {
-  res.json({ ok: true, candidates: folderCandidates(env.home) });
+// 가져오기 창 '내 PC' 탭 첫 화면: 바탕 화면·다운로드·문서·사용자 폴더 + 드라이브
+app.get('/api/folders/places', (req, res) => {
+  res.json({ ok: true, ...windowsPlaces() });
 });
-app.post('/api/config', (req, res) => {
+// 가져오기 전 점검: 이동/복사, 같은 GitHub 저장소 카드, 이름 겹침, 여러 저장소를 담은 폴더인지
+app.post('/api/projects/import-check', async (req, res) => {
   try {
-    if (env.projectsRootSource === 'env') {
-      return res.json({ ok: false, error: 'locked by PROJECTS_ROOT env' });
-    }
-    const v = validateRoot(req.body?.projectsRoot, env.home);
-    if (!v.ok) return res.json({ ok: false, error: v.error });
-    const w = writeConfig(configPath(process.env, env.home), { projectsRoot: v.path });
-    if (!w.ok) return res.json({ ok: false, error: w.error });
-    env.projectsRoot = v.path;
-    env.projectsRootSource = 'config';
-    console.log(`[config] projectsRoot → ${v.path}`);
-    res.json({ ok: true, projectsRoot: v.path, warning: v.warning });
+    const existing = await Promise.all(list(env.projectsRoot).map(async (p) => ({ name: p.name, github: await originRepo(p.path) })));
+    res.json(await inspectImport({ projectsRoot: env.projectsRoot, home: env.home, src: normalizeRoot(req.body?.path, env.home), existing }));
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+// 다른 곳의 작업 폴더를 ~/projects 로 가져오기: WSL 폴더는 이동, Windows 폴더(/mnt/…)는 복사
+app.post('/api/projects/import-folder', async (req, res) => {
+  try {
+    const src = normalizeRoot(req.body?.path, env.home);
+    const name = typeof req.body?.name === 'string' && req.body.name.trim() ? req.body.name.trim() : undefined;
+    const r = await importFolder({
+      projectsRoot: env.projectsRoot, home: env.home, src, name,
+      isRunning: (p) => isRunning(runningPaths(), p), selfDir: SELF_PATH,
+    });
+    if (r.ok) console.log(`[import] ${src} → ${r.path} (${r.mode})`);
+    res.json(r);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -324,6 +370,38 @@ app.get('/api/projects/remote', async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
+});
+
+// '새 기능' 창: 마지막으로 본 소식 id + 기존 사용자인지 + 예전에 쓰던 스캔 폴더 / 본 것으로 기록
+const WHATS_NEW_FILE = path.join(path.dirname(NOTES_FILE), 'whats-new.json');
+const OLD_CONFIG_FILE = path.join(process.env.XDG_CONFIG_HOME || path.join(env.home, '.config'), 'project-launcher', 'config.json');
+app.get('/api/whats-new', (req, res) => {
+  const u = userHistory({
+    stateDir: path.dirname(NOTES_FILE), configFile: OLD_CONFIG_FILE, home: env.home, projectsRoot: env.projectsRoot,
+    envRoot: process.env.PROJECTS_ROOT, hasProjects: list(env.projectsRoot).length > 0,
+  });
+  const home = env.home.replace(/\/+$/, '');
+  const legacyRoot = u.legacyRoot && (u.legacyRoot === home || u.legacyRoot.startsWith(home + '/') ? '~' + u.legacyRoot.slice(home.length) : u.legacyRoot);
+  res.json({ ok: true, seen: readSeen(WHATS_NEW_FILE), hasProjects: u.existing, legacyRoot }); // 화면 표시용으로 홈은 ~
+});
+app.post('/api/whats-new/seen', (req, res) => {
+  res.json(writeSeen(WHATS_NEW_FILE, req.body?.id));
+});
+
+// 휴지통: 카드 삭제로 휴지통에 간 프로젝트 목록 / 되살리기({id, name?}) / 영구 삭제({id})
+const TRASH_DIR = defaultTrashDir(process.env, env.home);
+app.get('/api/trash', (req, res) => {
+  res.json({ ok: true, items: listTrash({ trashDir: TRASH_DIR, projectsRoot: env.projectsRoot }) });
+});
+app.post('/api/trash/restore', (req, res) => {
+  const r = restoreTrash({ trashDir: TRASH_DIR, projectsRoot: env.projectsRoot, id: req.body?.id, name: req.body?.name });
+  if (r.ok) console.log(`[trash] 되살림: ${r.name}`);
+  res.json(r);
+});
+app.post('/api/trash/purge', (req, res) => {
+  const r = purgeTrash({ trashDir: TRASH_DIR, projectsRoot: env.projectsRoot, id: req.body?.id });
+  if (r.ok) console.log(`[trash] 영구 삭제: ${req.body.id}`);
+  res.json(r);
 });
 
 app.post('/api/projects/delete', async (req, res) => {

@@ -1,10 +1,13 @@
 // public/app.js
 import { t, getLang, setLang } from './i18n.js';
 import { dialogConfirm, dialogAlert, dialogPrompt } from './dialog.js';
-import { pickFolder } from './folder-picker.js';
+import { createFolderPane } from './import-folders.js';
+import { initTrash } from './trash-modal.js';
 import { classify } from './sync-classify.js';
 import { computeCardStatus } from './card-status.js';
 import { groupProjects } from './project-group.js';
+import { isTeamRole } from './team-role.js';
+import { initTeamModal, openTeamModal } from './team-modal.js';
 import {
   initAccounts, setAccounts, getAccounts, accountFor, rememberLocal, shortLabel, fullLabel,
   refreshAccounts, addAccountFlow, openAccountsModal, removeAccountFlow,
@@ -34,6 +37,7 @@ const createCancel = document.getElementById('create-cancel');
 const checked = new Set();
 // 프로젝트명 → {ahead, behind, state}. 재렌더(언어 전환) 시 배지 복원.
 const syncCache = new Map();
+const roleCache = new Map(); // 프로젝트명 → TeamInfo (서버 /api/github/visibility 의 info) — 런처 열 때 자동
 // 프로젝트명 → 서버 프로젝트 객체(p). renderStatus 가 git 정보를 참조.
 const projects = new Map();
 let customOrder = false; // 드래그로 정한 카드 순서가 있으면 '이름순 정렬' 버튼 표시
@@ -65,10 +69,9 @@ function applyStaticI18n() {
   langSwitch.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.lang === lang));
 }
 
-// ---- 스캔 폴더 (설정 파일) ----
+// ---- 작업 폴더 (~/projects 고정) ----
 let rootInfo = { projectsRoot: '', source: 'default', home: '' };
 const rootPathEl = document.getElementById('root-path');
-const rootChangeBtn = document.getElementById('root-change');
 
 function shortPath(p) {
   return rootInfo.home && p.startsWith(rootInfo.home) ? '~' + p.slice(rootInfo.home.length) : p;
@@ -81,33 +84,8 @@ async function loadRoot() {
     if (data.ok) rootInfo = data;
   } catch { /* 표시만 못 할 뿐 */ }
   rootPathEl.textContent = shortPath(rootInfo.projectsRoot || '');
-  rootChangeBtn.disabled = rootInfo.source === 'env';
-  rootChangeBtn.title = rootInfo.source === 'env' ? t('rootLockedEnv') : t('rootChangeTitle');
+  rootPathEl.title = t('rootFixedTitle');
 }
-
-async function changeRoot() {
-  const raw = await pickFolder({ current: rootInfo.projectsRoot || '', home: rootInfo.home });
-  if (raw === null || !raw.trim()) return;
-  hideBanner();
-  try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectsRoot: raw.trim() }),
-    });
-    const data = await res.json();
-    if (!data.ok) {
-      await dialogAlert(t('rootFail', t(`rootErr_${data.error}`) === `rootErr_${data.error}` ? data.error : t(`rootErr_${data.error}`)));
-      return;
-    }
-    if (data.warning === 'windows-fs') await dialogAlert(t('rootWarnWindowsFs'));
-    await loadRoot();
-    await loadProjects();
-  } catch {
-    showBanner(t('connectFail'));
-  }
-}
-rootChangeBtn.addEventListener('click', changeRoot);
 
 async function loadProjects() {
   hideBanner();
@@ -138,13 +116,14 @@ async function loadProjects() {
   renderTabBar();
   applyTabFilter();
   if (data.projects.length === 0) {
-    // 빈 목록 = 스캔 폴더가 잘못 잡혔을 가능성이 가장 큼 → 바로 바꿀 수 있게
+    // 빈 목록 → 새로 만들거나 다른 곳의 프로젝트를 가져오도록 안내
     showBanner(t('noProjects', shortPath(rootInfo.projectsRoot)));
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'small'; b.textContent = t('rootChange');
-    b.addEventListener('click', changeRoot);
+    b.type = 'button'; b.className = 'small'; b.textContent = t('cloneProject');
+    b.addEventListener('click', openImportModal);
     banner.appendChild(b);
   }
+  trash.refresh(); // 삭제·되살리기 뒤 '🗑 휴지통 (n)' 개수
 }
 
 // 그룹이 비어있지 않으면 섹션 헤더(전체폭) + 그 그룹 카드들을 grid 에 추가
@@ -545,6 +524,9 @@ async function fillVisibility(names) {
     data = await res.json();
   } catch { data = null; }
   for (const name of names) {
+    const info = data?.info?.[name] ?? null;
+    if (info) roleCache.set(name, info); else roleCache.delete(name);
+    renderStatus(findCard(name)); // 역할이 정해지면 배지·팀 띠 다시 그림
     const badge = grid.querySelector(`.gh-badge[data-name="${CSS.escape(name)}"]`);
     if (!badge) continue;
     const v = data?.visibility?.[name] ?? null;
@@ -621,7 +603,10 @@ function renderCard(p) {
   } else {
     dirty = !!g.dirty;
     const dirtyTxt = dirty ? t('dirty') : t('clean');
-    local.textContent = `${g.branch ?? 'HEAD'} · ${dirtyTxt} · ${relativeTime(g.lastCommitISO)}`;
+    const tag = document.createElement('span');
+    tag.className = 'branch-tag';
+    tag.textContent = g.branch ?? 'HEAD';
+    local.append(tag, ` · ${dirtyTxt} · ${relativeTime(g.lastCommitISO)}`);
   }
 
   // (미커밋일 때만) 설명 한 줄
@@ -701,20 +686,61 @@ function renderStatus(card) {
     hasUpstream: !!g.hasUpstream,
     checked: checked.has(p.name),
     sync: syncCache.get(p.name),
+    role: roleCache.get(p.name)?.role,
+    branch: g.branch,
   });
 
-  // 색 띠
+  // 색 띠 (팀 프로젝트면 끝에 ⓘ → 팀 정보 창)
   const strip = card.querySelector('.card-strip');
   strip.className = 'card-strip';
+  strip.textContent = '';
   if (st.stripKey) {
-    strip.textContent = st.stripArg !== undefined ? t(st.stripKey, st.stripArg) : t(st.stripKey);
+    const text = document.createElement('span');
+    text.className = 'strip-text';
+    text.textContent = st.stripArg !== undefined ? t(st.stripKey, st.stripArg) : t(st.stripKey);
+    strip.appendChild(text);
+    if (st.team) {
+      const info = document.createElement('button');
+      info.type = 'button';
+      info.className = 'team-info';
+      info.textContent = 'i';
+      info.title = t('teamInfoTitle');
+      info.addEventListener('click', () => openTeamModal(p.name));
+      strip.appendChild(info);
+    }
     strip.classList.add('strip-' + st.level);
     strip.hidden = false;
     card.dataset.level = st.level; // 카드 윗변 색 띠(외곽)도 같은 상태 색
   } else {
-    strip.textContent = '';
     strip.hidden = true;
     delete card.dataset.level;
+  }
+
+  // 브랜치 꼬리표: 기본 브랜치면 회색 테두리, 작업 브랜치면 🌿
+  const tag = card.querySelector('.branch-tag');
+  if (tag) {
+    const sync = syncCache.get(p.name);
+    const def = (sync && sync.defaultBranch) || roleCache.get(p.name)?.defaultBranch || null;
+    const b = g.branch ?? 'HEAD';
+    const onMain = def ? b === def : (b === 'main' || b === 'master');
+    tag.classList.toggle('on-main', onMain);
+    tag.textContent = onMain ? b : `🌿 ${b}`;
+  }
+
+  // 역할 배지 (GitHub 줄 끝)
+  const ghRow = card.querySelector('.github-row');
+  ghRow.querySelector('.role-badge')?.remove();
+  const ri = roleCache.get(p.name);
+  if (ri && ri.role && ri.role !== 'solo') {
+    const rb = document.createElement('span');
+    rb.className = `role-badge ${ri.role}`;
+    if (ri.role === 'leader') {
+      const n = syncCache.get(p.name)?.openPrs;
+      rb.textContent = n > 0 ? t('roleLeaderPr', n) : t('roleLeader', Math.max(0, (ri.collaborators ?? 1) - 1));
+    } else if (ri.role === 'member') rb.textContent = t('roleMember');
+    else { rb.textContent = t('roleReadonly'); rb.title = t('roleReadonlyTitle'); }
+    if (isTeamRole(ri.role)) rb.addEventListener('click', () => openTeamModal(p.name));
+    ghRow.appendChild(rb);
   }
 
   // ☁️ GitHub 행
@@ -723,7 +749,7 @@ function renderStatus(card) {
   if (st.githubKey) {
     github.hidden = false;
     ghVal.textContent = t(st.githubKey, ...st.githubArgs);
-    const cls = { behind: 'gh-behind', ahead: 'gh-ahead', diverged: 'gh-diverged', upToDate: 'gh-synced' }[st.githubKey] || '';
+    const cls = { behind: 'gh-behind', ahead: 'gh-ahead', diverged: 'gh-diverged', upToDate: 'gh-synced', ghMainBehind: 'gh-main-behind' }[st.githubKey] || '';
     ghVal.className = 'gh-val' + (cls ? ' ' + cls : '');
   } else {
     github.hidden = true;
@@ -782,6 +808,21 @@ function refreshLaunchLabels() {
   }
 }
 initAccounts({ onChange: refreshLaunchLabels });
+const trash = initTrash({ relativeTime, onRestored: () => loadProjects() });
+initTeamModal({
+  getContext: (name) => {
+    const p = projects.get(name);
+    if (!p) return null;
+    const g = p.git || {};
+    const status = computeCardStatus({ isGit: !!g.isGit, hasUpstream: !!g.hasUpstream, checked: checked.has(name), sync: syncCache.get(name), role: roleCache.get(name)?.role, branch: g.branch });
+    return { name, info: roleCache.get(name) || null, sync: syncCache.get(name), checked: checked.has(name), status };
+  },
+  onLaunch: (name) => {
+    const card = findCard(name);
+    const btn = card?.querySelector('button.launch');
+    if (card && btn) doLaunch(name, btn, card);
+  },
+});
 
 // 메뉴가 보이는 영역(고정 탭 줄 아래 ~ 서버 콘솔 위) 안에 들어오게 펼친다:
 // 아래로 다 들어가면 아래, 아니면 위·아래 중 넓은 쪽으로 펼치고 모자란 만큼 메뉴 안에서 스크롤.
@@ -895,6 +936,7 @@ async function doLaunch(name, btn, card, accountId) {
 async function doFetch(name, btn) {
   hideBanner();
   btn.disabled = true;
+  btn.textContent = t('checkRemoteBusy'); // 끝나면 renderStatus 가 버튼을 새로 그려 원래 글자로 돌아감
   try {
     const res = await fetch('/api/git/fetch', {
       method: 'POST',
@@ -907,7 +949,11 @@ async function doFetch(name, btn) {
       checked.add(name); // 확인 실패해도 작업은 막지 않음
       showBanner(t('fetchFail', data.error ?? t('serverError')));
     } else {
-      syncCache.set(name, { ahead: data.ahead, behind: data.behind, state: classify(data.ahead, data.behind) });
+      syncCache.set(name, {
+        ahead: data.ahead, behind: data.behind, state: classify(data.ahead, data.behind),
+        branch: data.branch, defaultBranch: data.defaultBranch, mainAhead: data.mainAhead, mainBehind: data.mainBehind,
+        pr: data.pr, openPrs: Array.isArray(data.openPrs) ? data.openPrs.length : null, openPrList: data.openPrs || [],
+      });
       checked.add(name);
     }
   } catch {
@@ -926,7 +972,9 @@ function findCard(name) {
 }
 
 async function doPull(name, btn) {
-  if (!(await dialogConfirm(t('pullConfirm', name)))) return;
+  // claude 가 열려 있으면 작업 중 파일이 바뀌는 위험을 알리고 claude 에게 맡기길 권함(막지는 않음)
+  const running = projects.get(name)?.running;
+  if (!(await dialogConfirm(t(running ? 'pullRunningConfirm' : 'pullConfirm', name)))) return;
   hideBanner();
   btn.disabled = true;
   try {
@@ -1078,23 +1126,52 @@ async function doImportClone(repo, li) {
   }
 }
 
-async function openImportModal() {
+// 세 탭: GitHub(저장소 목록) / 내 PC(Windows 폴더 → 복사) / WSL(홈 아래 폴더 → 이동)
+const importTabs = [...importModal.querySelectorAll('.import-tab')];
+const importPaneGithub = document.getElementById('import-pane-github');
+const importPaneFolder = document.getElementById('import-pane-folder');
+let folderPane = null;
+let importTab = 'github';
+
+function showImportTab(tab) {
+  importTab = tab;
+  for (const b of importTabs) {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', String(on));
+  }
+  importPaneGithub.classList.toggle('hidden', tab !== 'github');
+  importPaneFolder.classList.toggle('hidden', tab === 'github');
+  if (tab === 'github') { loadImportRepos(); return; }
+  folderPane ??= createFolderPane({
+    el: importPaneFolder, home: rootInfo.home, projectsRoot: rootInfo.projectsRoot,
+    onPick: (p) => { closeImportModal(); importPath(p); },
+  });
+  folderPane.show(tab);
+}
+for (const b of importTabs) b.addEventListener('click', () => showImportTab(b.dataset.tab));
+
+function openImportModal() {
   hideBanner();
   importTitle.textContent = t('importTitle');
   importClose.title = t('importClose');
   importClose.setAttribute('aria-label', t('importClose'));
+  importModal.classList.remove('hidden');
+  showImportTab('github');
+}
+
+async function loadImportRepos() {
   importSearch.placeholder = t('importSearchPlaceholder');
   importSearch.setAttribute('aria-label', t('importSearchPlaceholder'));
   importSearch.value = '';
   importRepos = [];
   importList.innerHTML = '';
   setImportStatus(t('importLoading'));
-  importModal.classList.remove('hidden');
   importSearch.focus();
   try {
     const res = await fetch('/api/github/repos');
     const data = await res.json();
-    if (!importIsOpen()) return; // 사용자가 그새 닫음
+    if (!importIsOpen() || importTab !== 'github') return; // 사용자가 그새 닫거나 다른 탭으로
     if (data.ok) {
       importRepos = data.repos || [];
       renderImportList();
@@ -1102,11 +1179,86 @@ async function openImportModal() {
       renderImportFallback(data.error, data.code);
     }
   } catch {
-    if (importIsOpen()) renderImportFallback('');
+    if (importIsOpen() && importTab === 'github') renderImportFallback('');
   }
 }
 
 cloneProjectBtn.addEventListener('click', openImportModal);
+
+// ── 내 PC·WSL 폴더에서 가져오기 ─────────────────────────────────────────
+// WSL 폴더 = ~/projects 로 이동, Windows 폴더(/mnt/…) = 복사(원본 유지). 실제 판단·검사는 서버(importer.js).
+const postJson = async (url, body) => (await fetch(url, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+})).json();
+const importErr = (e) => (t(`importErr_${e}`) === `importErr_${e}` ? e : t(`importErr_${e}`));
+const baseName = (p) => p.split('/').filter(Boolean).pop() || p;
+
+// 한 폴더 가져오기 실행 → {ok, name} | {ok:false, error}
+async function runImport(src, name) {
+  showBanner(t('importingFolder', baseName(src)));
+  try {
+    const r = await postJson('/api/projects/import-folder', { path: src, name });
+    hideBanner();
+    return r;
+  } catch {
+    hideBanner();
+    return { ok: false, error: t('cloneReqFail') };
+  }
+}
+
+// 고른(또는 예전 작업 폴더) 경로를 점검 → 확인 → 가져오기
+async function importPath(picked) {
+  if (!picked) return;
+  let info;
+  try { info = await postJson('/api/projects/import-check', { path: picked }); } catch { showBanner(t('cloneReqFail')); return; }
+  if (!info.ok) { await dialogAlert(t('importFolderFail', importErr(info.error))); return; }
+  if (!info.isRepo && info.children.length > 0) return importChildren(info);
+
+  let name = info.name;
+  // 같은 이름의 폴더, 또는 그 이름의 옛 대화 기록(지운 프로젝트 등)이 있으면 새 이름을 받는다
+  if (info.nameTaken || info.historyTaken) {
+    const ask = info.nameTaken ? t('importNameTaken', name) : t('importHistoryTaken', name);
+    name = ((await dialogPrompt(ask, { value: `${name}-2` })) || '').trim();
+    if (!name) return;
+  }
+  const lines = [t(info.mode === 'copy' ? 'importConfirmCopy' : 'importConfirmMove', shortPath(info.path), `${shortPath(rootInfo.projectsRoot)}/${name}`, info.historyShared)];
+  if (info.mode === 'move' && !info.isRepo) lines.push(t('importNotRepoWarn'));
+  if (info.github) lines.push(t('importGithubKept', info.github));
+  if (info.duplicateOf) lines.push(t('importDuplicate', info.duplicateOf));
+  if (info.historyShared) lines.push(t('importHistoryShared'));
+  if (!(await dialogConfirm(lines.join('\n\n'), { ok: t(info.mode === 'copy' ? 'importCopyOk' : 'importMoveOk') }))) return;
+  const r = await runImport(info.path, name);
+  if (!r.ok) { await dialogAlert(t('importFolderFail', importErr(r.error))); return; }
+  await loadProjects();
+  if (r.mode === 'copy') await dialogAlert(t('importCopyDone', `${shortPath(rootInfo.projectsRoot)}/${r.name}`, shortPath(info.path)));
+}
+
+// 여러 저장소를 담은 폴더(예: 예전 작업 폴더) → 안의 저장소들을 각각 가져오기. 같은 이름이 있으면 건너뜀.
+async function importChildren(info) {
+  const names = info.children.map(baseName);
+  const msg = t(info.mode === 'copy' ? 'importChildrenCopy' : 'importChildrenMove', shortPath(info.path), names.length, names.join(', '));
+  if (!(await dialogConfirm(msg, { ok: t(info.mode === 'copy' ? 'importCopyOk' : 'importMoveOk') }))) return;
+  const done = []; const skipped = []; const dups = [];
+  for (const child of info.children) {
+    let c;
+    try { c = await postJson('/api/projects/import-check', { path: child }); } catch { c = { ok: false, error: '' }; }
+    if (!c.ok || c.nameTaken || c.historyTaken) {
+      const why = !c.ok ? c.error : c.nameTaken ? 'already exists' : 'history taken';
+      skipped.push(`${baseName(child)} (${importErr(why)})`);
+      continue;
+    }
+    const r = await runImport(child);
+    if (!r.ok) { skipped.push(`${baseName(child)} (${importErr(r.error)})`); continue; }
+    done.push(r.name);
+    if (c.duplicateOf) dups.push(`${r.name} ↔ ${c.duplicateOf}`);
+  }
+  await loadProjects();
+  const lines = [t('importChildrenDone', done.length)];
+  if (skipped.length) lines.push(t('importChildrenSkipped', skipped.join('\n')));
+  if (dups.length) lines.push(t('importChildrenDups', dups.join('\n')));
+  if (info.mode === 'copy' && done.length) lines.push(t('importCopyDoneShort', shortPath(info.path)));
+  await dialogAlert(lines.join('\n\n'));
+}
 importClose.addEventListener('click', closeImportModal);
 importModal.addEventListener('click', (e) => { if (e.target === importModal) closeImportModal(); }); // backdrop
 importSearch.addEventListener('input', renderImportList);
@@ -1118,7 +1270,7 @@ window.addEventListener('i18n:change', () => {
   importClose.setAttribute('aria-label', t('importClose'));
   importSearch.placeholder = t('importSearchPlaceholder');
   importSearch.setAttribute('aria-label', t('importSearchPlaceholder'));
-  renderImportList();
+  if (importTab === 'github') renderImportList(); else folderPane?.refreshTexts();
 });
 
 // ── 새 프로젝트 모달 ──────────────────────────────────────────────
@@ -1348,6 +1500,8 @@ async function doRename(name, btn) {
       showBanner(t('renameAsciiOnly', newName));
     } else if (data.error === 'self') {
       showBanner(t('renameSelfBlocked'));
+    } else if (data.error === 'history taken') {
+      showBanner(t('renameHistoryTaken', newName));
     } else {
       showBanner(t('renameFail', data.error ?? t('unknownError')));
     }

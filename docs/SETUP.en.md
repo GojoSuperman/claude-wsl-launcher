@@ -16,10 +16,10 @@ On a machine with nothing installed, this is the shortest path. You do **steps 1
 | 1 | **Windows PowerShell (admin)** | `wsl --install` → reboot → create a username/password on Ubuntu's first run |
 | 2 | **Ubuntu terminal** | Install Claude Code: `curl -fsSL https://claude.ai/install.sh \| bash` (no Node needed) → run `claude` once and **log in** |
 | 3 | Ubuntu terminal | `cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd claude-wsl-launcher && claude` |
-| 4 | **Inside Claude Code** | Say **"install this"** — it reads the README and runs `bash scripts/setup.sh`. With no keyboard input available it auto-answers yes to everything, installs Node/nvm if missing, picks your projects folder, and creates the desktop shortcut |
+| 4 | **Inside Claude Code** | Say **"install this"** — it reads the README and runs `bash scripts/setup.sh`. With no keyboard input available it auto-answers yes to everything, installs Node/nvm if missing, creates the work folder (`~/projects`), and creates the desktop shortcut |
 | 5 | Desktop | Double-click the shortcut |
 
-- You can hand step 3's clone to Claude Code too: start it from home with `cd ~ && claude` and say "clone this URL and install it". Keep the launcher in your **home, not inside a projects folder** such as `~/projects`.
+- You can hand step 3's clone to Claude Code too: start it from home with `cd ~ && claude` and say "clone this URL and install it". Keep the launcher in your **home, not inside** the work folder `~/projects`.
 - Sections 0–7 below explain the same process step by step for doing it by hand.
 
 ---
@@ -59,7 +59,7 @@ From here on, everything happens in the **WSL (Ubuntu) terminal**.
 > ⚠️ **Clone inside the WSL terminal.** Cloning from PowerShell or Explorer saves `.sh` files with Windows line endings (CRLF), and the scripts fail with `set: pipefail: invalid option name`. (`setup.sh` checks and fixes this too.)
 
 ```bash
-cd ~                 # keep the tool outside the scanned folder (e.g. home — not inside ~/projects)
+cd ~                 # keep the tool outside the work folder (e.g. home — not inside ~/projects)
 git clone https://github.com/GojoSuperman/claude-wsl-launcher.git
 cd claude-wsl-launcher
 ```
@@ -82,17 +82,17 @@ What it does:
 | 4 | (optional) `gh` logged in? | Hint only |
 | 5 | `scripts/*.sh` use LF line endings? | "Fix? [Y/N]" |
 | 6 | Dependencies (`node_modules`) | Runs `npm install` if missing |
-| 6.5 | **Projects folder**: finds folders under your home that hold several git repositories and lists them by number | Saves your pick to `~/.config/project-launcher/config.json`. Creates `~/projects` if nothing is found |
+| 6.5 | **Work folder**: `~/projects` inside WSL (fixed) | Created if missing. If other folders under your home hold git repositories, they are listed with a pointer to ⬇ Import in the dashboard |
 | 7 | Desktop shortcut | "Create? [Y/N]" |
 
 - Pressing Enter on any question means "No". Anything you skip can be done later by running `bash scripts/setup.sh` again.
-- If you already keep projects somewhere (`~/dev`, `~/work`, …) it shows up in the candidate list with its repository count; just pick the number. You can change it later with **[Change]** at the top of the dashboard.
-- To finish without questions (AI agents, scripts): `bash scripts/setup.sh --yes` answers yes to everything and picks the candidate with the most repositories. When no keyboard input is available this mode turns on by itself, even without `--yes`.
-- To set the folder explicitly: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
+- If you already keep projects somewhere (`~/dev`, `~/work`, …), it is listed with its repository count. Move them into `~/projects` with **[⬇ Import] → 🐧 WSL** in the dashboard.
+- To finish without questions (AI agents, scripts): `bash scripts/setup.sh --yes` answers yes to everything. When no keyboard input is available this mode turns on by itself, even without `--yes`.
 - To change the shortcut name: `SHORTCUT_NAME='My Launcher' bash scripts/setup.sh` (default `Claude WSL Launcher`).
 - When you see `✅` and the URL at the end, you are done.
 
-> The tool scans the chosen projects folder **regardless of where the tool itself lives**. Each subfolder becomes a card. Priority: `PROJECTS_ROOT` env var > config file > `~/projects`.
+> Projects live in the **work folder `~/projects`** inside WSL (fixed), **regardless of where the tool itself lives**. Each subfolder becomes a card.
+> It is fixed because working directly in Windows folders (Desktop, Documents, …) is slow and causes line-ending problems. Bring projects from elsewhere with **[⬇ Import]** in the dashboard.
 
 ---
 
@@ -111,7 +111,7 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 ```
 
 - If the port is busy it falls back to 41731–41739; open the address printed in the log. Pick one with `PORT=5000 npm start`.
-- Change the projects folder: **Scan folder [Change]** at the top of the dashboard (saved to the config file, no restart). When there are no cards at all, the banner offers it too. For a one-off run on another folder: `PROJECTS_ROOT=~/dev npm start` ([Change] is locked then).
+- The work folder is fixed to `~/projects`. Bring projects from elsewhere with **[⬇ Import]**.
 - **Stopping**: closing the dashboard window stops the server automatically after about 10 seconds. To stop immediately use the **[Shut down]** button in the header or `Ctrl+C` in the terminal. (Disable auto-stop with `AUTO_SHUTDOWN=0 npm start`.)
 
 ---
@@ -123,10 +123,13 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 | **[Launch claude]** | Opens claude in a **new WSL window** for that folder. Continues the conversation (`--continue`) if history exists, otherwise starts fresh |
 | **[Check remote]** → **[Pull]** | `git fetch`, then `git pull --ff-only` if behind (shown only on cards with an upstream) |
 | **[+ New project]** | Creates `~/projects/<name>` and runs `git init` |
-| **[⬇ Import]** | Searches your GitHub repository list and clones the one you pick (needs gh login). Repositories you already have are marked. If the list cannot be loaded you can switch to **entering a URL manually** |
+| **[⬇ Import]** | Pick from three tabs into the work folder. **GitHub**: search your repository list and clone (needs gh login; repos you already have are marked; if the list cannot load, **enter a URL manually**). **💻 My PC**: **copy** a folder from Desktop, Documents, Downloads or a drive (original kept, `node_modules` skipped). **🐧 WSL**: **move** another folder from your home. claude conversation history and per-folder claude settings come along, and `.git` is kept so the GitHub link stays |
 | **[Delete]** on a card | Moves the local folder to the trash. A checkbox also **deletes the GitHub repository** (needs gh login). Running projects and the tool's own folder cannot be deleted. If the GitHub delete fails, the local folder is kept |
+| **🗑 Trash (n)** | Next to the work folder (only when something was deleted). **Restore** deleted projects to their place or **delete them forever**. Separate from the Windows Recycle Bin |
+| **👑 / 👥 / 👀 badges** on a card | Your role in a team project (shared repo). **Check GitHub** shows to-dos based on main and PRs as a strip; **ⓘ** shows details and copyable text for claude |
+| **[✨ What's new]** | Introduces what changed in an update. Opens automatically the first time after an update |
 | **[Note]** on a card | A one-line note per card (stored in `~/.local/state/project-launcher/notes.json`) |
-| **[✏️ Rename project]** | Renames the folder and moves the claude history folder along. If origin is GitHub, runs `gh repo rename` to update the repo name and remote URL (needs gh login; on failure only the local folder changes and a warning appears). Disabled for running projects and this tool's own folder |
+| **[✏️ Rename project]** | Renames the folder and moves the claude history folder and per-folder claude settings along. If origin is GitHub, runs `gh repo rename` to update the repo name and remote URL (needs gh login; on failure only the local folder changes and a warning appears). Disabled for running projects and this tool's own folder |
 | **GitHub line** on a card | The origin repo (`owner/repo`) and a **public/private** badge. Shows `?` without gh login. Click the badge to switch after confirming (needs admin permission on the repo) |
 | **Auto · ☀️ · 🌙** | Light/dark theme. Auto follows the Windows setting (remembered) |
 | **[⟳ Update]** | Updates the launcher itself: check → pull → shut down to apply, all in one modal. If your local edits overlap the incoming changes, or the history has diverged, nothing is changed and the reason is shown |
@@ -163,6 +166,7 @@ What doctor cannot catch:
 | Browser says "cannot connect" | The server did not start or auto-stopped. Double-click the shortcut again, or run `npm start`. |
 | `Launch claude` opens nothing, or "spawn cmd.exe ENOENT" | A PATH problem. Start the server from a WSL terminal with `npm start` (login shell). |
 | Port already in use (EADDRINUSE) | A server is already running. Use [Shut down], or `PORT=5000 npm start`. |
+| Cards are missing after an update (you picked a different projects folder before) | The work folder is now fixed to `~/projects`. Find your old folder in **[⬇ Import] → 🐧 WSL / 💻 My PC** and import the projects. The **✨ What's new** window shows the old folder's location at the top. |
 | Shortcut behaves like the old version / does nothing | Recreate it: `bash scripts/install-shortcut.sh`. |
 | "GitHub rename failed" warning after renaming | The local folder is already renamed. Run `gh auth login` and retry, or rename on GitHub web and run `git remote set-url origin <new URL>`. |
 
@@ -211,7 +215,7 @@ npm install -g @anthropic-ai/claude-code          # or via npm (needs Node)
 ```bash
 npm install
 npm start                               # or
-bash scripts/install-shortcut.sh        # desktop shortcut (PROJECTS_ROOT=~/dev to pick the scanned folder)
+bash scripts/install-shortcut.sh        # desktop shortcut
 ```
 
 **Broken line endings** (`set: pipefail: invalid option name`): inside WSL run `sed -i 's/\r$//' scripts/*.sh`, or clone again from a WSL terminal.

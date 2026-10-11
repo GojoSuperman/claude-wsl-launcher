@@ -16,10 +16,10 @@
 | 1 | **Windows PowerShell(관리자)** | `wsl --install` → 재부팅 → 우분투 첫 실행에서 사용자 이름·비밀번호 만들기 |
 | 2 | **우분투 터미널** | Claude Code 설치: `curl -fsSL https://claude.ai/install.sh \| bash` (Node 없이도 됨) → `claude` 실행해 **로그인** |
 | 3 | 우분투 터미널 | `cd ~ && git clone https://github.com/GojoSuperman/claude-wsl-launcher.git && cd claude-wsl-launcher && claude` |
-| 4 | **Claude Code 안에서** | **"설치해줘"** — README 를 읽고 `bash scripts/setup.sh` 를 돌립니다. 키보드 입력이 없는 환경이라 자동으로 전부 '예'. Node/nvm 이 없어도 설치하고, 프로젝트 폴더를 찾아 고르고, 바탕화면 단축키까지 만듭니다 |
+| 4 | **Claude Code 안에서** | **"설치해줘"** — README 를 읽고 `bash scripts/setup.sh` 를 돌립니다. 키보드 입력이 없는 환경이라 자동으로 전부 '예'. Node/nvm 이 없어도 설치하고, 작업 폴더(`~/projects`)를 만들고, 바탕화면 단축키까지 만듭니다 |
 | 5 | 바탕화면 | 단축키 더블클릭 |
 
-- 3번의 clone 도 Claude Code 에게 시켜도 됩니다: `cd ~ && claude` 로 홈에서 띄운 뒤 "이 주소를 클론하고 설치해줘". 런처는 `~/projects` 같은 **프로젝트 폴더 안이 아니라 홈**에 두세요.
+- 3번의 clone 도 Claude Code 에게 시켜도 됩니다: `cd ~ && claude` 로 홈에서 띄운 뒤 "이 주소를 클론하고 설치해줘". 런처는 작업 폴더 `~/projects` **안이 아니라 홈**에 두세요.
 - 아래 0~7번은 같은 과정을 한 단계씩 확인하며 손으로 할 때의 설명입니다.
 
 ---
@@ -59,7 +59,7 @@ wsl --version
 > ⚠️ **반드시 WSL 터미널 안에서 클론하세요.** PowerShell·탐색기에서 클론하면 `.sh` 파일이 Windows 줄바꿈(CRLF)으로 저장돼 스크립트가 `set: pipefail: invalid option name` 으로 실패합니다. (`setup.sh` 가 이것도 점검·수정해 줍니다.)
 
 ```bash
-cd ~                 # 도구는 스캔 폴더 밖에 (홈 등 — ~/projects 안에 두지 않기)
+cd ~                 # 도구는 작업 폴더 밖에 (홈 등 — ~/projects 안에 두지 않기)
 git clone https://github.com/GojoSuperman/claude-wsl-launcher.git
 cd claude-wsl-launcher
 ```
@@ -82,17 +82,17 @@ bash scripts/setup.sh
 | 4 | (선택) `gh` 로그인 여부 | 안내만 |
 | 5 | `scripts/*.sh` 줄바꿈이 LF 인지 | "고칠까요? [Y/N]" |
 | 6 | 의존성(`node_modules`) | 없으면 `npm install` |
-| 6.5 | **프로젝트 폴더**: 홈 아래에서 git 저장소를 여러 개 품은 폴더를 찾아 번호로 보여줌 | 고른 폴더를 `~/.config/project-launcher/config.json` 에 저장. 후보가 없으면 `~/projects` 생성 |
+| 6.5 | **작업 폴더**: WSL 안의 `~/projects` (고정) | 없으면 생성. 홈 아래 다른 곳에 git 저장소 폴더가 있으면 목록으로 보여주고 대시보드 ⬇ 가져오기로 옮기라고 안내 |
 | 7 | 바탕화면 단축키 | "만들까요? [Y/N]" |
 
 - 모든 질문은 그냥 Enter 를 치면 "아니요" 입니다. 건너뛴 것은 나중에 다시 `bash scripts/setup.sh` 로 이어서 할 수 있습니다.
-- 이미 쓰던 프로젝트 폴더(`~/dev`, `~/work` 등)가 있으면 후보 목록에 저장소 수와 함께 뜹니다. 번호만 고르면 됩니다. 나중에 대시보드 상단 **[변경]** 으로 바꿀 수 있습니다.
-- 질문 없이 끝내려면(AI 에이전트·스크립트): `bash scripts/setup.sh --yes` — 전부 '예', 폴더는 저장소가 가장 많은 후보 자동 선택. 키보드 입력이 없는 환경이면 `--yes` 를 안 붙여도 자동으로 이 모드가 됩니다.
-- 폴더를 직접 지정하려면: `PROJECTS_ROOT=~/dev bash scripts/setup.sh`.
+- 이미 쓰던 프로젝트 폴더(`~/dev`, `~/work` 등)가 있으면 저장소 수와 함께 알려 줍니다. 대시보드의 **[⬇ 가져오기] → 🐧 WSL** 탭에서 `~/projects` 로 옮겨 오세요.
+- 질문 없이 끝내려면(AI 에이전트·스크립트): `bash scripts/setup.sh --yes` — 전부 '예'. 키보드 입력이 없는 환경이면 `--yes` 를 안 붙여도 자동으로 이 모드가 됩니다.
 - 단축키 이름을 바꾸려면: `SHORTCUT_NAME='내 런처' bash scripts/setup.sh` (기본 `Claude WSL Launcher`).
 - 마지막에 `✅ 설치 완료` 와 접속 주소가 보이면 끝입니다.
 
-> 이 도구는 **도구를 둔 위치와 별개로** 고른 프로젝트 폴더를 스캔합니다. 그 아래 폴더 하나하나가 카드가 됩니다. 우선순위는 `PROJECTS_ROOT` 환경변수 > 설정 파일 > `~/projects`.
+> 프로젝트는 **도구를 둔 위치와 별개로** WSL 안의 **작업 폴더 `~/projects`** 에서 작업합니다(고정). 그 아래 폴더 하나하나가 카드가 됩니다.
+> Windows 폴더(바탕 화면·문서 등)에서 바로 작업하면 느리고 줄바꿈 문제가 생겨서 고정했습니다. 다른 곳에 있는 프로젝트는 대시보드의 **[⬇ 가져오기]** 로 옮겨 오세요.
 
 ---
 
@@ -111,7 +111,7 @@ npm start       # 마지막에 "프로젝트 런처: http://127.0.0.1:41730" 이
 ```
 
 - 포트가 사용 중이면 41731~41739 로 자동 폴백되니 로그에 찍힌 실제 주소를 엽니다. 지정: `PORT=5000 npm start`
-- 프로젝트 폴더 바꾸기: 대시보드 상단 **스캔 폴더 [변경]** (설정 파일에 저장, 재시작 불필요). 카드가 하나도 없을 때는 배너에서도 바꿀 수 있습니다. 한 번만 다른 폴더로 띄우려면 `PROJECTS_ROOT=~/dev npm start` (이때는 [변경] 이 잠깁니다).
+- 작업 폴더는 `~/projects` 로 고정입니다. 다른 곳의 프로젝트는 **[⬇ 가져오기]** 로 옮겨 옵니다.
 - **끄기**: 대시보드 창을 닫으면 약 10초 뒤 서버가 **자동 종료**됩니다. 바로 끄려면 헤더의 **[서버 종료]** 버튼 또는 터미널에서 `Ctrl+C`. (자동 종료를 끄려면 `AUTO_SHUTDOWN=0 npm start`)
 
 ---
@@ -123,10 +123,13 @@ npm start       # 마지막에 "프로젝트 런처: http://127.0.0.1:41730" 이
 | **[claude 실행]** | 그 폴더에서 **새 WSL 창**에 claude. 대화 이력이 있으면 이어서(`--continue`), 없으면 새 세션 |
 | **[원격 확인]** → **[받기]** | `git fetch` 후 뒤처졌으면 `git pull --ff-only` (업스트림 있는 카드에만 표시) |
 | **[+ 새 프로젝트]** | `~/projects/<이름>` 폴더 + `git init` |
-| **[⬇ 가져오기]** | 내 GitHub 저장소 목록을 검색해 클론(gh 로그인 필요). 이미 받은 저장소는 구분 표시. 목록을 못 불러오면 **URL 직접 입력**으로 전환 가능 |
+| **[⬇ 가져오기]** | 세 탭에서 골라 작업 폴더로. **GitHub**: 내 저장소 목록을 검색해 클론(gh 로그인 필요, 이미 받은 저장소는 구분 표시, 목록을 못 불러오면 **URL 직접 입력**). **💻 내 PC**: 바탕 화면·문서·다운로드·드라이브의 폴더를 **복사**(원본 유지, `node_modules` 제외). **🐧 WSL**: 홈의 다른 폴더를 **이동**. claude 대화 기록·폴더별 claude 설정도 따라오고, `.git` 은 그대로라 GitHub 연결이 유지됨 |
 | 카드의 **[삭제]** | 로컬 폴더를 휴지통으로 이동. 체크박스로 **GitHub 저장소까지 함께 삭제**(gh 로그인 필요). 실행 중인 프로젝트·이 도구 자신의 폴더는 삭제 불가. GitHub 삭제가 실패하면 로컬도 보존 |
+| **🗑 휴지통 (n)** | 작업 폴더 옆(지운 게 있을 때만). 지운 프로젝트를 **되살리기**(원래 자리로) 또는 **영구 삭제**. Windows 휴지통과는 별개 |
+| 카드의 **👑 / 👥 / 👀 배지** | 팀 프로젝트(협업 저장소)의 내 역할. **GitHub 확인**을 누르면 main·PR 기준으로 할 일을 띠로 알려 주고, **ⓘ** 로 자세한 상태와 claude 에게 할 말(복사)을 봄 |
+| **[✨ 새 기능]** | 업데이트로 바뀐 기능 소개. 업데이트 뒤 처음 열 때는 자동으로 뜸 |
 | 카드의 **[메모]** | 카드마다 한 줄 메모(`~/.local/state/project-launcher/notes.json` 에 저장) |
-| **[✏️ 프로젝트 이름 변경]** | 폴더 이름 변경 + claude 대화 이력 폴더도 함께 이동. origin 이 GitHub 면 `gh repo rename` 으로 저장소 이름·remote URL 까지 갱신(gh 로그인 필요, 실패하면 로컬만 바뀌고 경고). 실행 중인 프로젝트·이 도구 자신의 폴더는 버튼 비활성 |
+| **[✏️ 프로젝트 이름 변경]** | 폴더 이름 변경 + claude 대화 이력 폴더·폴더별 claude 설정도 함께 이동. origin 이 GitHub 면 `gh repo rename` 으로 저장소 이름·remote URL 까지 갱신(gh 로그인 필요, 실패하면 로컬만 바뀌고 경고). 실행 중인 프로젝트·이 도구 자신의 폴더는 버튼 비활성 |
 | 카드의 **GitHub 줄** | origin 저장소(`owner/repo`)와 **공개/비공개** 배지. gh 로그인이 없으면 `?`. 배지를 클릭하면 확인 후 공개↔비공개 전환(저장소 관리자 권한 필요) |
 | **자동 · ☀️ · 🌙** | 라이트/다크 테마. 자동 = Windows 설정 따름 (선택 기억됨) |
 | **[⟳ 업데이트]** | 런처 자체를 최신으로. 확인 → 받기 → 적용을 위한 종료까지 한 모달에서. 직접 고친 파일이 업데이트와 겹치거나 이력이 갈라졌으면 아무것도 바꾸지 않고 이유를 표시 |
@@ -163,6 +166,7 @@ doctor 가 잡지 못하는 것:
 | 브라우저 "연결할 수 없음" | 서버가 안 떴거나 자동 종료됨. 단축키 다시 더블클릭, 또는 `npm start`. |
 | `claude 실행` 을 눌러도 창이 안 뜨거나 "spawn cmd.exe ENOENT" | PATH 문제. WSL 터미널에서 `npm start` 로(로그인 셸) 서버를 띄워 보세요. |
 | 포트 사용 중(EADDRINUSE) | 이미 서버가 떠 있음. [서버 종료] 하거나 `PORT=5000 npm start`. |
+| 업데이트 뒤 카드가 안 보임 (예전에 다른 프로젝트 폴더를 골라 씀) | 작업 폴더가 `~/projects` 로 고정됐습니다. **[⬇ 가져오기] → 🐧 WSL / 💻 내 PC** 탭에서 예전 폴더를 찾아 프로젝트를 가져오세요. **✨ 새 기능** 창 맨 위에 예전 폴더 위치가 나옵니다. |
 | 단축키가 옛 동작을 함 / 안 됨 | `bash scripts/install-shortcut.sh` 로 재생성. |
 | 이름 변경 후 "GitHub 이름 변경 실패" 경고 | 로컬은 바뀐 상태. `gh auth login` 후 다시 시도하거나 GitHub 웹에서 이름을 바꾸고 `git remote set-url origin <새 URL>`. |
 
@@ -211,7 +215,7 @@ npm install -g @anthropic-ai/claude-code          # 또는 npm (Node 필요)
 ```bash
 npm install
 npm start                               # 또는
-bash scripts/install-shortcut.sh        # 바탕화면 단축키 (PROJECTS_ROOT=~/dev 로 스캔 폴더 지정 가능)
+bash scripts/install-shortcut.sh        # 바탕화면 단축키
 ```
 
 **줄바꿈이 깨졌을 때** (`set: pipefail: invalid option name`): WSL 안에서 `sed -i 's/\r$//' scripts/*.sh` 또는 WSL 터미널에서 다시 클론.

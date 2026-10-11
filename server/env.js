@@ -1,7 +1,7 @@
 // server/env.js
 import { execSync } from 'node:child_process';
 import path from 'node:path';
-import { configPath, readConfig, normalizeRoot } from './config.js';
+import { normalizeRoot } from './config.js';
 
 /** wsl.exe -l -q 첫 줄을 폴백 distro 로 (실패 시 빈 문자열) */
 function defaultFallback() {
@@ -14,19 +14,18 @@ function defaultFallback() {
   }
 }
 
+const WINDOWS_FS = /^\/mnt\/[a-zA-Z]\//;
+
 /**
- * 스캔할 프로젝트 루트 결정. 우선순위: PROJECTS_ROOT 환경변수 > 설정 파일 > $HOME/projects.
- * - 미설정/공백 → 기본 $HOME/projects
- * - '~' 또는 '~/sub' → 홈 기준 확장
- * - 절대경로 → 그대로(정규화)
- * - 상대경로 → 홈 기준으로 해석
+ * 스캔할 프로젝트 루트 결정. 작업 폴더는 WSL 안의 $HOME/projects 로 고정한다.
+ * - PROJECTS_ROOT 환경변수(테스트·개발용)는 존중하되 Windows 폴더(/mnt/…)면 무시
+ * - 예전 '스캔 폴더 변경' 설정 파일 값은 쓰지 않는다(다른 곳의 프로젝트는 ⬇ 가져오기로)
  */
-function resolveProjectsRoot(processEnv, home, readCfg) {
+function resolveProjectsRoot(processEnv, home) {
+  const def = path.join(home, 'projects');
   const fromEnv = normalizeRoot(processEnv.PROJECTS_ROOT, home);
-  if (fromEnv) return { projectsRoot: fromEnv, projectsRootSource: 'env' };
-  const fromCfg = normalizeRoot(readCfg(configPath(processEnv, home)).projectsRoot, home);
-  if (fromCfg) return { projectsRoot: fromCfg, projectsRootSource: 'config' };
-  return { projectsRoot: path.join(home, 'projects'), projectsRootSource: 'default' };
+  if (fromEnv && !WINDOWS_FS.test(fromEnv)) return { projectsRoot: fromEnv, projectsRootSource: 'env' };
+  return { projectsRoot: def, projectsRootSource: 'default' };
 }
 
 /**
@@ -34,7 +33,7 @@ function resolveProjectsRoot(processEnv, home, readCfg) {
  * @param {object} processEnv  보통 process.env
  * @param {() => string} fallbackDistro  WSL_DISTRO_NAME 없을 때 호출
  */
-export function detectEnv(processEnv, fallbackDistro = defaultFallback, readCfg = readConfig) {
+export function detectEnv(processEnv, fallbackDistro = defaultFallback) {
   const home = processEnv.HOME || '';
   const user = processEnv.USER || '';
   const distro = processEnv.WSL_DISTRO_NAME || fallbackDistro();
@@ -45,6 +44,6 @@ export function detectEnv(processEnv, fallbackDistro = defaultFallback, readCfg 
     distro,
     home,
     user,
-    ...resolveProjectsRoot(processEnv, home, readCfg),
+    ...resolveProjectsRoot(processEnv, home),
   };
 }

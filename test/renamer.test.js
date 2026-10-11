@@ -124,3 +124,33 @@ test('한글 새 이름 → ascii only, 폴더 그대로', async () => {
   assert.equal(r.error, 'ascii only');
   assert.equal(fs.existsSync(full), true);
 });
+
+test('새 이름의 대화 기록이 이미 남아 있으면 history taken, 아무것도 안 옮김', async () => {
+  const { root, home, full } = setup('old-app', { session: true });
+  const stale = path.join(home, '.claude', 'projects', encode(path.join(root, 'new-app')));
+  fs.mkdirSync(stale, { recursive: true });
+  fs.writeFileSync(path.join(stale, 'x.jsonl'), '{}\n');
+  const r = await rename({ projectsRoot: root, home, name: 'old-app', newName: 'new-app', renameRepo: okRepo });
+  assert.deepEqual(r, { ok: false, error: 'history taken' });
+  assert.ok(fs.existsSync(full));
+});
+
+test('이름을 바꾸면 ~/.claude.json 의 폴더 신뢰·local MCP 설정이 새 경로로 따라온다', async () => {
+  const { root, home, full } = setup('old-app');
+  const cj = path.join(home, '.claude.json');
+  fs.writeFileSync(cj, JSON.stringify({ projects: { [full]: { hasTrustDialogAccepted: true, mcpServers: { db: {} } } } }));
+  const r = await rename({ projectsRoot: root, home, name: 'old-app', newName: 'new-app', renameRepo: okRepo });
+  assert.equal(r.ok, true);
+  assert.deepEqual(JSON.parse(fs.readFileSync(cj, 'utf8')).projects[path.join(root, 'new-app')], { hasTrustDialogAccepted: true, mcpServers: { db: {} } });
+});
+
+test('대화 기록이 이름 겹치는 다른 폴더 기록과 섞여 있으면 기록은 옮기지 않는다', async () => {
+  const { root, home, full } = setup('old-app');
+  const sdir = path.join(home, '.claude', 'projects', encode(full));
+  fs.mkdirSync(sdir, { recursive: true });
+  fs.writeFileSync(path.join(sdir, 'a.jsonl'), JSON.stringify({ cwd: full }) + '\n');
+  fs.writeFileSync(path.join(sdir, 'b.jsonl'), JSON.stringify({ cwd: path.join(root, 'old_app') }) + '\n');
+  const r = await rename({ projectsRoot: root, home, name: 'old-app', newName: 'new-app', renameRepo: okRepo });
+  assert.equal(r.ok, true);
+  assert.ok(fs.existsSync(path.join(sdir, 'b.jsonl')));
+});

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { status, aheadBehind, parseOriginRepo } from '../server/git.js';
+import { status, aheadBehind, parseOriginRepo, defaultBranch, aheadBehindRef, localGithubUser } from '../server/git.js';
 
 function tmpDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -162,4 +162,74 @@ test('parseOriginRepo: https/ssh/.git/non-github/빈값', () => {
   assert.equal(parseOriginRepo('https://gitlab.com/owner/repo.git'), null);
   assert.equal(parseOriginRepo(''), null);
   assert.equal(parseOriginRepo(null), null);
+});
+
+test('커밋 0개 repo → branch 는 HEAD 가 아니라 실제 이름', async () => {
+  const d = tmpDir('unborn-');
+  initRepo(d);
+  git(d, 'checkout', '-q', '-b', 'main');
+  assert.equal((await status(d)).branch, 'main');
+});
+
+test('도구 폴더(.bkit/, .superpowers/)만 미추적 → dirty:false, 다른 파일 섞이면 true', async () => {
+  const d = tmpDir('tooldir-');
+  initRepo(d);
+  commit(d, 'a.txt', 'first');
+  fs.mkdirSync(path.join(d, '.bkit'));
+  fs.writeFileSync(path.join(d, '.bkit', 'state.json'), '{}');
+  fs.mkdirSync(path.join(d, '.superpowers'));
+  fs.writeFileSync(path.join(d, '.superpowers', 'x.md'), 'x');
+  assert.equal((await status(d)).dirty, false);
+  fs.writeFileSync(path.join(d, 'new.txt'), 'x');
+  assert.equal((await status(d)).dirty, true);
+});
+
+test('defaultBranch / aheadBehindRef: clone 은 origin/HEAD 로 기본 브랜치, 슬래시 브랜치도 비교', async () => {
+  const bare = bareRemote();
+  const seed = cloneOf(bare, 'seed-');
+  commit(seed, 'a.txt', 'first');
+  git(seed, 'push', '-q', 'origin', 'HEAD:main');
+  git(bare, 'symbolic-ref', 'HEAD', 'refs/heads/main');
+  const c = tmpDir('clone2-');
+  execFileSync('git', ['clone', '-q', bare, c], { stdio: 'ignore' });
+  git(c, 'config', 'user.email', 't@t'); git(c, 'config', 'user.name', 't'); git(c, 'config', 'commit.gpgsign', 'false');
+  assert.equal(await defaultBranch(c), 'main');
+  git(c, 'checkout', '-q', '-b', 'hackathon2/participant-04');
+  commit(c, 'b.txt', 'mine');
+  commit(seed, 'c.txt', 'theirs');
+  git(seed, 'push', '-q', 'origin', 'HEAD:main');
+  git(c, 'fetch', '-q');
+  assert.deepEqual(await aheadBehindRef(c, 'origin/main'), { ahead: 1, behind: 1 });
+  assert.equal(await aheadBehindRef(c, 'origin/nope'), null);
+});
+
+test('defaultBranch: origin/HEAD 없으면 null', async () => {
+  const d = tmpDir('noorigin-');
+  initRepo(d);
+  commit(d, 'a.txt', 'first');
+  assert.equal(await defaultBranch(d), null);
+});
+
+test('localGithubUser: 폴더의 github.user 설정(한 PC 에 GitHub 계정이 여럿일 때), 없으면 null', async () => {
+  const d = tmpDir('ghuser-');
+  initRepo(d);
+  assert.equal(await localGithubUser(d), null);
+  git(d, 'config', 'github.user', 'Bob');
+  assert.equal(await localGithubUser(d), 'Bob');
+});
+
+test('localGithubUser: 전역(global) github.user 는 무시하고 이 폴더(local) 설정만', async () => {
+  const d = tmpDir('ghuser-g-');
+  initRepo(d);
+  const gcfg = path.join(tmpDir('gcfg-'), 'gitconfig');
+  fs.writeFileSync(gcfg, '[github]\n\tuser = old-global-id\n');
+  const prev = process.env.GIT_CONFIG_GLOBAL;
+  process.env.GIT_CONFIG_GLOBAL = gcfg;
+  try {
+    assert.equal(await localGithubUser(d), null);
+    git(d, 'config', '--local', 'github.user', 'Bob');
+    assert.equal(await localGithubUser(d), 'Bob');
+  } finally {
+    if (prev === undefined) delete process.env.GIT_CONFIG_GLOBAL; else process.env.GIT_CONFIG_GLOBAL = prev;
+  }
 });

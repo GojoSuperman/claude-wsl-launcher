@@ -18,6 +18,15 @@ async function git(dir, args) {
   }
 }
 
+// 도구가 스스로 만드는 폴더 — 이것만 미추적이면 "미커밋 변경"으로 치지 않는다 (bkit 플러그인, 설계 미리보기)
+export const TOOL_DIRS = ['.bkit/', '.superpowers/'];
+
+/** git status --porcelain 출력 → 사용자가 바꾼 것이 있는가 (순수) */
+export function isDirty(porcelain) {
+  return porcelain.split('\n').filter(Boolean)
+    .some((l) => !(l.startsWith('?? ') && TOOL_DIRS.includes(l.slice(3))));
+}
+
 /**
  * 한 디렉토리의 git 상태 (read-only). 절대 throw 하지 않는다.
  * @returns {Promise<{isGit:boolean, branch:string|null, dirty:boolean|null, lastCommitISO:string|null, hasUpstream:boolean}>}
@@ -28,15 +37,17 @@ export async function status(dir) {
   const inside = await git(dir, ['rev-parse', '--is-inside-work-tree']);
   if (inside !== 'true') return none;
 
-  const branch = await git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
-  const porcelain = await git(dir, ['status', '--porcelain']);
+  let branch = await git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
   const lastCommit = await git(dir, ['log', '-1', '--format=%cI']);
+  // 커밋 0개면 rev-parse 가 HEAD 를 돌려준다 → 실제로 만들어질 브랜치 이름(예: main)
+  if (!lastCommit) branch = (await git(dir, ['symbolic-ref', '--short', 'HEAD'])) || branch;
+  const porcelain = await git(dir, ['status', '--porcelain']);
   const upstream = await git(dir, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
 
   return {
     isGit: true,
     branch: branch || null,
-    dirty: porcelain === null ? null : porcelain.length > 0,
+    dirty: porcelain === null ? null : isDirty(porcelain),
     lastCommitISO: lastCommit || null,
     hasUpstream: upstream !== null,
   };
@@ -70,6 +81,30 @@ export function parseOriginRepo(url) {
   if (!s) return null;
   const m = s.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
   return m ? `${m[1]}/${m[2]}` : null;
+}
+
+/**
+ * 이 폴더의 GitHub 사용자(git config github.user). 한 PC 에 GitHub 계정이 여럿일 때
+ * 폴더별로 "나"를 정하려고 쓴다(없으면 null → gh 활성 계정 사용).
+ */
+export async function localGithubUser(dir) {
+  // --local: github.user 는 hub·forge 등 다른 도구가 전역에 두는 흔한 키 → 이 폴더에 직접 넣은 값만 쓴다
+  return (await git(dir, ['config', '--local', '--get', 'github.user'])) || null;
+}
+
+/** origin 의 기본 브랜치 이름(refs/remotes/origin/HEAD). 없으면 null. */
+export async function defaultBranch(dir) {
+  const ref = await git(dir, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']);
+  return ref && ref.startsWith('origin/') ? ref.slice('origin/'.length) : null;
+}
+
+/** 지금 HEAD vs ref(예: origin/main) 앞섬·뒤짐. ref 가 없으면 null. fetch 직후에 부를 것. */
+export async function aheadBehindRef(dir, ref) {
+  if (!(await git(dir, ['rev-parse', '--verify', '--quiet', ref]))) return null;
+  const out = await git(dir, ['rev-list', '--left-right', '--count', `${ref}...HEAD`]);
+  if (!out) return null;
+  const [behind, ahead] = out.split(/\s+/).map(Number);
+  return { ahead: Number.isFinite(ahead) ? ahead : 0, behind: Number.isFinite(behind) ? behind : 0 };
 }
 
 /** origin 원격이 github 면 'owner/repo', 아니면 null. 절대 throw 안 함. */

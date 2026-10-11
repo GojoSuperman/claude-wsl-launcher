@@ -22,6 +22,7 @@
         <button type="button" data-theme="dark" data-i18n-title="themeDarkTitle" aria-label="dark">🌙</button>
       </div>
       <button id="help-btn" type="button" class="ghost"><span aria-hidden="true">❓</span> <span data-i18n="help">📖 사용법</span></button>
+      <button id="whats-new-btn" type="button" class="ghost" data-i18n="whatsNewBtn">✨ 새 기능</button>
       <button id="new-project" type="button" data-i18n="newProject">+ 새 프로젝트</button>
       <button id="clone-project" type="button" data-i18n="cloneProject">⬇ 가져오기</button>
       <button id="update-btn" type="button" class="ghost" data-i18n="updateBtn">⟳ 업데이트</button>
@@ -29,7 +30,7 @@
       <button id="shutdown" type="button" class="danger" data-i18n="shutdown">서버 종료</button>
     </div>
   </header>
-  <div class="root-line"><span data-i18n="rootLabel">스캔 폴더</span> <code id="root-path">…</code> <button id="root-change" type="button" class="ghost small" data-i18n="rootChange">변경</button></div>
+  <div class="root-line"><span data-i18n="rootLabel">작업 폴더</span> <code id="root-path">…</code> <span class="root-hint" data-i18n="rootHint"></span> <button id="trash-btn" type="button" class="small hidden"></button></div>
   <div id="banner" class="banner hidden"></div>
   <nav id="tabbar" class="tabbar"></nav>
   <main id="grid" class="grid"></main>
@@ -41,6 +42,17 @@
     </div>
     <div id="console-pane" class="console-pane"></div>
   </section>
+
+  <div id="whats-new-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
+    <div class="help-dialog whats-new-box">
+      <div class="help-head">
+        <h2 id="whats-new-title" data-i18n="whatsNewTitle">새 기능 안내</h2>
+        <button id="whats-new-close" class="help-close" type="button">✕</button>
+      </div>
+      <div id="whats-new-body"></div>
+      <div class="dlg-actions"><button id="whats-new-ok" type="button" data-i18n="whatsNewOk">확인</button></div>
+    </div>
+  </div>
 
   <div id="help-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
     <div class="help-dialog">
@@ -65,15 +77,33 @@
     </div>
   </div>
 
+  <div id="team-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="team-title">
+    <div class="help-dialog team-dialog">
+      <div class="help-head">
+        <h2 id="team-title"></h2>
+        <button id="team-close" class="help-close" type="button">✕</button>
+      </div>
+      <div id="team-body"></div>
+    </div>
+  </div>
+
   <div id="import-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
     <div class="help-dialog">
       <div class="help-head">
         <h2 id="import-title"></h2>
         <button id="import-close" class="help-close" type="button">✕</button>
       </div>
-      <input id="import-search" class="import-search" type="text" />
-      <div id="import-status" class="import-status hidden"></div>
-      <ul id="import-list" class="import-list"></ul>
+      <div class="import-tabs" role="tablist">
+        <button type="button" class="import-tab" role="tab" data-tab="github" data-i18n="importTabGithub">GitHub</button>
+        <button type="button" class="import-tab" role="tab" data-tab="pc" data-i18n="importTabPc">내 PC</button>
+        <button type="button" class="import-tab" role="tab" data-tab="wsl" data-i18n="importTabWsl">WSL</button>
+      </div>
+      <div id="import-pane-github">
+        <input id="import-search" class="import-search" type="text" />
+        <div id="import-status" class="import-status hidden"></div>
+        <ul id="import-list" class="import-list"></ul>
+      </div>
+      <div id="import-pane-folder" class="hidden"></div>
     </div>
   </div>
 
@@ -89,6 +119,19 @@
         <button id="create-cancel" type="button" class="ghost"></button>
         <button id="create-submit" type="button"></button>
       </div>
+    </div>
+  </div>
+
+  <div id="trash-modal" class="help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="trash-title">
+    <div class="help-dialog">
+      <div class="help-head">
+        <h2 id="trash-title" data-i18n="trashTitle">휴지통</h2>
+        <button id="trash-close" class="help-close" type="button">✕</button>
+      </div>
+      <p class="ifp-hint" data-i18n="trashHint"></p>
+      <div class="trash-tools"><button id="trash-empty" type="button" class="small trash-danger hidden" data-i18n="trashEmptyAll">모두 비우기</button></div>
+      <div id="trash-status" class="import-status hidden"></div>
+      <ul id="trash-list" class="import-list trash-list"></ul>
     </div>
   </div>
 
@@ -151,5 +194,6 @@
   <script src="./app.js" type="module"></script>
   <script src="./update.js" type="module"></script>
   <script src="./help.js" type="module"></script>
+  <script src="./whats-new.js" type="module"></script>
 </body>
 </html>
