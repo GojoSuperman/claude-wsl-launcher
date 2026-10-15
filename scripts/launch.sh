@@ -6,6 +6,7 @@
 #   - 성공 → 브라우저만 열고 이 창은 닫힘 (Chrome 있으면 앱 모드 독립 창, 없으면 기본 브라우저)
 #   - 실패 → 서버 로그를 보여주며 창을 유지 (눈먼 채 끝나지 않게)
 #   - 이미 떠 있으면 재기동 없이 브라우저만
+#   - 켜는 중에 또 누르면(터미널이 늦게 떠 실행 안 된 줄 알고) 뒤의 것은 안내만 하고 끝 → 서버·창이 하나만 생김
 #
 # 제약: 브라우저 페이지는 서버가 서빙하므로, 서버가 아예 안 뜨면 브라우저로
 #       오류를 못 보여준다 → 그래서 실패 시 "이 창"에 로그를 남긴다.
@@ -19,6 +20,24 @@ export PORT                       # 자식 npm start 가 같은 기본 포트를
 PORT_END=$((PORT + 9))            # 서버는 PORT..PORT+9 범위에서 폴백 바인딩
 LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/project-launcher"
 LOG="${LOG_DIR}/server.log"
+# 바로가기로 띄운 서버는 2분 안에 창이 한 번도 안 붙으면 스스로 꺼진다(주인 없는 서버 방지 — server/idle-shutdown.js)
+export LAUNCHER_ORPHAN_MS="${LAUNCHER_ORPHAN_MS:-120000}"
+
+echo "🚀 프로젝트 런처를 켜는 중이에요… 처음 켤 때는 10~20초 걸릴 수 있어요."
+echo "   이 창이 저절로 닫힐 때까지 기다려 주세요 (바탕화면 아이콘을 다시 누르지 않아도 돼요)."
+
+# 동시 실행 잠금: 앞의 실행이 끝나기 전에 또 누르면 뒤의 것은 기다리지 않고 끝낸다.
+# 잠금 파일 핸들(9)은 서버·브라우저에 물려주지 않는다(9>&-) — 물려주면 서버가 사는 동안 잠금이 안 풀린다.
+mkdir -p "$LOG_DIR"
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$LOG_DIR/launch.lock"
+  if ! flock -n 9; then
+    echo
+    echo "이미 다른 창에서 런처를 켜는 중이에요. 잠시 후 대시보드가 열립니다 — 이 창은 곧 닫혀요."
+    sleep 3
+    exit 0
+  fi
+fi
 
 # chrome.exe 경로 탐지 (하드코딩 금지 — 데스크탑/노트북 양쪽 동작). 없으면 빈 문자열.
 find_chrome() {
@@ -68,7 +87,7 @@ open_browser() {
   local url="http://localhost:${1}" chrome chrome_win cmdexe pid
   if chrome="$(find_chrome)" && cmdexe="$(resolve_cmd)"; then
     chrome_win="$(wslpath -w "$chrome")"
-    setsid "$cmdexe" /c start "" "$chrome_win" "--app=${url}" >/dev/null 2>&1 </dev/null &
+    setsid "$cmdexe" /c start "" "$chrome_win" "--app=${url}" >/dev/null 2>&1 </dev/null 9>&- &
     pid=$!
     for _ in $(seq 1 30); do
       kill -0 "$pid" 2>/dev/null || break
@@ -80,7 +99,7 @@ open_browser() {
     fi
     wait "$pid" && return 0
   fi
-  explorer.exe "$url" >/dev/null 2>&1 || true
+  explorer.exe "$url" >/dev/null 2>&1 9>&- || true
 }
 
 # PORT..PORT_END 중 "우리 대시보드"(health 마커)가 떠 있는 첫 포트를 echo. (curl 무의존 — /dev/tcp)
@@ -118,14 +137,13 @@ if FOUND="$(ours_port)"; then
   exit 0
 fi
 
-mkdir -p "$LOG_DIR"
 # 직전 실행의 로그는 server.log.prev 로 남긴다 — 서버가 왜 꺼졌는지(자동 종료/WSL 종료)를 나중에 가리기 위해.
 [ -s "$LOG" ] && mv -f "$LOG" "$LOG.prev"
 : > "$LOG"
 # 창(wsl.exe 세션)이 닫혀도 살아남도록 setsid 로 새 세션에 완전 분리.
 # (WSL 함정: transient `wsl.exe -- cmd` 세션이 끝나면 nohup 만으론 자식이 함께 죽는다.
 #  setsid 는 제어터미널 없는 새 세션을 만들어 세션 종료 신호로부터 떼어낸다.)
-setsid bash -c 'exec npm start' >>"$LOG" 2>&1 </dev/null &
+setsid bash -c 'exec npm start' >>"$LOG" 2>&1 </dev/null 9>&- &
 disown 2>/dev/null || true
 
 # 헬스체크: 최대 ~12초 동안 우리 대시보드가 (폴백 포함) 뜨길 기다림
@@ -146,4 +164,5 @@ echo "────────────────────────�
 tail -n 100 "$LOG" 2>/dev/null || echo "(로그 비어 있음)"
 echo "────────────────────────────────────────"
 echo "수동 재시도:  cd '${PROJ}' && npm start"
+exec 9>&-   # 이 창을 열어 둔 채로도 다음 실행이 막히지 않게 잠금을 푼다
 exec bash -i

@@ -36,6 +36,7 @@ import { listRepos, cloneRepo, parseRepos, deleteRepo } from './github.js';
 import { check as checkUpdate, update as runUpdate } from './updater.js';
 import { createConsoleStream } from './console-stream.js';
 import { createIdleShutdown } from './idle-shutdown.js';
+import { findRunningLauncher } from './single-instance.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 이 대시보드 서버 자신의 프로젝트 폴더 — 이름 변경 대상에서 제외(서버가 깨짐)
@@ -535,11 +536,17 @@ for (const sig of ['SIGTERM', 'SIGHUP', 'SIGINT']) {
 
 // 브라우저 창(콘솔 WebSocket)이 모두 닫히고 유예가 지나면 자동 종료. AUTO_SHUTDOWN=0 으로 끔.
 const AUTO_SHUTDOWN = process.env.AUTO_SHUTDOWN !== '0';
+// 바로가기(launch.sh)로 띄우면 LAUNCHER_ORPHAN_MS 가 온다: 그 시간 안에 창이 한 번도 안 붙으면(주인 없는 서버) 종료.
+// 터미널에서 npm start 로 직접 띄운 경우엔 없으므로 지금처럼 끄지 않는다.
+const ORPHAN_MS = Number(process.env.LAUNCHER_ORPHAN_MS) || undefined;
 const idle = createIdleShutdown({
   graceMs: 10000,
-  onShutdown: () => {
+  startupGraceMs: ORPHAN_MS,
+  onShutdown: (reason) => {
     if (!AUTO_SHUTDOWN) return;
-    console.log(`[idle] ${stamp()} 대시보드 창이 닫혀 서버를 자동 종료합니다`);
+    console.log(reason === 'orphan'
+      ? `[idle] ${stamp()} 시작 후 ${Math.round(ORPHAN_MS / 1000)}초 동안 대시보드 창이 한 번도 안 붙어 서버를 종료합니다`
+      : `[idle] ${stamp()} 대시보드 창이 닫혀 서버를 자동 종료합니다`);
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 1000).unref();
   },
@@ -565,4 +572,10 @@ function listen(port, triesLeft) {
   });
 }
 
+// 같은 런처가 이미 (폴백 포함) 다른 포트에서 떠 있으면 하나 더 띄우지 않는다
+const running = await findRunningLauncher({ ports: Array.from({ length: MAX_PORT_TRIES }, (_, i) => PORT + i) });
+if (running) {
+  console.log(`[single] ${stamp()} 런처가 이미 http://127.0.0.1:${running} 에서 실행 중 — 이 서버는 띄우지 않고 종료합니다`);
+  process.exit(0);
+}
 listen(PORT, MAX_PORT_TRIES);

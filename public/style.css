@@ -338,3 +338,8 @@ button.trash-danger { background: transparent; color: #e74c3c; border-color: #e7
 .whats-new-list { list-style: none; margin: 0 0 .6rem; padding: 0; display: flex; flex-direction: column; gap: .7rem; }
 .whats-new-list strong { font-size: .95rem; }
 .whats-new-list p { margin: .2rem 0 0; font-size: .87rem; line-height: 1.5; opacity: .85; }
+
+/* 새 창이 열려 물러난 창 */
+#window-replaced { z-index: 300; background: #0b0d10; } /* 뒤의 화면·창을 완전히 가린다 */
+.window-replaced-box { max-width: 420px; text-align: center; }
+.window-replaced-box p { margin: .4rem 0 1rem; line-height: 1.5; opacity: .85; }

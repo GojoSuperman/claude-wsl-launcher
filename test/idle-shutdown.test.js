@@ -4,14 +4,16 @@ import assert from 'node:assert/strict';
 import { createIdleShutdown } from '../server/idle-shutdown.js';
 
 // 가짜 타이머/시계: fire 를 수동으로 호출한다
-function harness(graceMs = 1000) {
+function harness(graceMs = 1000, startupGraceMs) {
   let clock = 0;
   const timers = new Map();
   let seq = 0;
   let shutdowns = 0;
+  const reasons = [];
   const idle = createIdleShutdown({
-    onShutdown: () => { shutdowns += 1; },
+    onShutdown: (reason) => { shutdowns += 1; reasons.push(reason); },
     graceMs,
+    startupGraceMs,
     setTimer: (fn, ms) => { const id = ++seq; timers.set(id, { fn, at: clock + ms }); return id; },
     clearTimer: (id) => timers.delete(id),
     now: () => clock,
@@ -23,7 +25,7 @@ function harness(graceMs = 1000) {
       if (t.at <= clock) { timers.delete(id); t.fn(); }
     }
   };
-  return { idle, advance, get shutdowns() { return shutdowns; }, pending: () => timers.size };
+  return { idle, advance, reasons, get shutdowns() { return shutdowns; }, pending: () => timers.size };
 }
 
 test('연결된 적 없으면 절대 끄지 않는다', () => {
@@ -86,4 +88,24 @@ test('절전 후 재대기 중 재연결되면 유지', () => {
   h.idle.connected();
   h.advance(10_000);
   assert.equal(h.shutdowns, 0);
+});
+
+test('startupGraceMs: 바로가기로 띄웠는데 창이 한 번도 안 붙으면(주인 없는 서버) 그 시간 뒤 종료', () => {
+  const h = harness(1000, 120_000);
+  h.advance(119_000);
+  assert.equal(h.shutdowns, 0);
+  h.advance(1_000);
+  assert.equal(h.shutdowns, 1);
+  assert.deepEqual(h.reasons, ['orphan']);
+});
+
+test('startupGraceMs: 그 안에 창이 붙으면 시작 타이머는 취소되고 평소대로(끊기면 유예 후 idle)', () => {
+  const h = harness(1000, 120_000);
+  h.advance(5_000);
+  h.idle.connected();
+  h.advance(300_000);
+  assert.equal(h.shutdowns, 0);
+  h.idle.disconnected();
+  h.advance(1_000);
+  assert.deepEqual(h.reasons, ['idle']);
 });
