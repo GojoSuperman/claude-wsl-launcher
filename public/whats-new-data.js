@@ -5,6 +5,23 @@
 
 export const RELEASES = [
   {
+    id: '2026-10-15',
+    items: {
+      ko: [
+        { t: '🎨 터미널 탭 색', d: '카드의 🎨 탭 색 버튼으로 색을 고르면, 그 카드에서 claude 를 실행할 때 터미널 탭이 그 색으로 칠해져요(Windows Terminal). 카드 이름 앞에도 같은 색 점이 보여 탭과 짝을 찾기 쉬워요.' },
+        { t: '🚀 런처가 두 개 뜨지 않게', d: '켜는 중에 바탕화면 아이콘을 또 눌러도 런처는 하나만 떠요. 이미 열려 있을 때 다시 누르면 새 창이 열리고 예전 창은 닫혀요(안 닫히면 "다른 창에서 열었어요" 안내).' },
+      ],
+      en: [
+        { t: '🎨 Terminal tab color', d: 'Pick a color with the 🎨 Tab color button on a card, and the terminal tab is painted that color when you run claude from that card (Windows Terminal). A matching dot appears before the card name so you can pair the tab with its card.' },
+        { t: '🚀 No more two launchers', d: 'Clicking the desktop icon again while the launcher is starting still gives you just one launcher. Clicking it while one is open opens a new window and closes the old one (or shows "opened in another window" if it cannot close).' },
+      ],
+      ja: [
+        { t: '🎨 ターミナルのタブの色', d: 'カードの 🎨 タブの色 ボタンで色を選ぶと、そのカードから claude を起動したときにターミナルのタブがその色になります (Windows Terminal)。カード名の前にも同じ色の点が付き、タブとカードを見分けやすくなります。' },
+        { t: '🚀 ランチャーが二つ開かないように', d: '起動中にデスクトップのアイコンをもう一度押しても、ランチャーは一つだけ開きます。開いているときに押すと新しいウィンドウが開き、前のウィンドウは閉じます(閉じられない場合は「別のウィンドウで開きました」と表示)。' },
+      ],
+    },
+  },
+  {
     id: '2026-10-11',
     items: {
       ko: [

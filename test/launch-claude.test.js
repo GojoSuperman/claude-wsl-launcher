@@ -28,7 +28,8 @@ function run(args, { apiKey = 'sk-test-dummy' } = {}) {
   });
   const rec = Object.fromEntries(fs.readFileSync(out, 'utf8').trim().split('\n').map((l) => [l.split('=')[0], l.slice(l.indexOf('=') + 1)]));
   const titles = [...r.stdout.matchAll(/\x1b\]0;([^\x07]*)\x07/g)].map((m) => m[1]);
-  return { rec, titles, stdout: r.stdout };
+  const colors = [...r.stdout.matchAll(/\x1b\]4;(\d+);rgb:([0-9a-f]{2})\/([0-9a-f]{2})\/([0-9a-f]{2})\x1b\\\x1b\[2;15;(\d+),\|/g)].map((m) => ({ slot: m[1], rgb: m[2] + m[3] + m[4], used: m[5] }));
+  return { rec, titles, colors, stdout: r.stdout };
 }
 
 test('기본 계정: 환경 그대로, 탭 제목 = 폴더 이름', () => {
@@ -53,4 +54,12 @@ test('기본 계정 + 라벨(계정이 여러 개일 때): 환경 그대로, 제
   assert.equal(rec.CFG, '');
   assert.equal(rec.KEY, 'sk-test-dummy');
   assert.deepEqual(titles, ['my-proj · 개인']);
+});
+
+test('--color rrggbb: 탭 색 시퀀스(색 목록 200번을 그 색으로 → 탭에 칠함)를 내보낸다, 없거나 잘못되면 안 냄', () => {
+  assert.deepEqual(run(['--color', 'ff8800']).colors, [{ slot: '200', rgb: 'ff8800', used: '200' }]);
+  assert.deepEqual(run([]).colors, []);
+  const bad = run(['--color', 'zz;rm']);
+  assert.deepEqual(bad.colors, []);
+  assert.equal(bad.stdout.includes('\x1b[2;15;'), false);
 });

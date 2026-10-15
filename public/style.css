@@ -343,3 +343,16 @@ button.trash-danger { background: transparent; color: #e74c3c; border-color: #e7
 #window-replaced { z-index: 300; background: #0b0d10; } /* 뒤의 화면·창을 완전히 가린다 */
 .window-replaced-box { max-width: 420px; text-align: center; }
 .window-replaced-box p { margin: .4rem 0 1rem; line-height: 1.5; opacity: .85; }
+
+/* 🎨 터미널 탭 색 */
+.card .card-tabcolor { color: inherit; }
+.tab-color-dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .4rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 2px light-dark(#fff, #262a36), 0 0 0 3px #8886; }
+.tab-color-box { max-width: 400px; }
+.tc-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: .7rem 0; }
+.tc-swatch { height: 2.2rem; border-radius: 8px; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.tc-swatch:hover { transform: scale(1.05); }
+.tc-swatch.selected { border-color: light-dark(#111, #fff); box-shadow: 0 0 0 2px #8888; }
+.tc-row { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+.tc-custom { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; font-size: .9rem; }
+.tc-custom input { width: 2.2rem; height: 1.8rem; padding: 0; border: none; background: none; cursor: pointer; }
+.tc-row .ghost { background: transparent; color: inherit; border-color: #8886; }

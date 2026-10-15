@@ -129,6 +129,7 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 | **👑 / 👥 / 👀 badges** on a card | Your role in a team project (shared repo). **Check GitHub** shows to-dos based on main and PRs as a strip; **ⓘ** shows details and copyable text for claude |
 | **[✨ What's new]** | Introduces what changed in an update. Opens automatically the first time after an update |
 | **[Note]** on a card | A one-line note per card (stored in `~/.local/state/project-launcher/notes.json`) |
+| **[🎨 Tab color]** on a card | Pick a color (8 presets, any color, or none) and the claude terminal tab launched from that card is painted that color (Windows Terminal). A matching dot appears before the card name |
 | **[✏️ Rename project]** | Renames the folder and moves the claude history folder and per-folder claude settings along. If origin is GitHub, runs `gh repo rename` to update the repo name and remote URL (needs gh login; on failure only the local folder changes and a warning appears). Disabled for running projects and this tool's own folder |
 | **GitHub line** on a card | The origin repo (`owner/repo`) and a **public/private** badge. Shows `?` without gh login. Click the badge to switch after confirming (needs admin permission on the repo) |
 | **Auto · ☀️ · 🌙** | Light/dark theme. Auto follows the Windows setting (remembered) |

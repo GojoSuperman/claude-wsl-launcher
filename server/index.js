@@ -24,6 +24,7 @@ import { listTrash, restoreTrash, purgeTrash, defaultTrashDir } from './trash.js
 import { readSeen, writeSeen, userHistory } from './whats-new.js';
 import { rename as renameProject } from './renamer.js';
 import { readAll as readNotes, setNote } from './notes.js';
+import { readColors, setColor, renameColor, removeColor } from './tab-colors.js';
 import { readOrder, writeOrder, renameInOrder } from './order.js';
 import { readTabs, writeTabs, renameInTabs } from './tabs.js';
 import {
@@ -76,6 +77,8 @@ const ORDER_FILE = path.join(path.dirname(NOTES_FILE), 'order.json');
 const TABS_FILE = path.join(path.dirname(NOTES_FILE), 'tabs.json');
 // 여러 계정: 추가 계정 목록·별명·프로젝트별 마지막 계정 (같은 폴더)
 const ACCOUNTS_FILE = path.join(path.dirname(NOTES_FILE), 'accounts.json');
+// 카드에서 고른 터미널 탭 색 (프로젝트명 → #rrggbb)
+const TAB_COLORS_FILE = path.join(path.dirname(NOTES_FILE), 'tab-colors.json');
 
 const app = express();
 app.use(express.json());
@@ -88,6 +91,7 @@ app.get('/api/projects', async (req, res) => {
     const dirs = list(env.projectsRoot);
     const runSet = runningPaths();
     const notes = readNotes(NOTES_FILE); // 프로젝트명 → 메모
+    const colors = readColors(TAB_COLORS_FILE); // 프로젝트명 → 탭 색
     const projects = await Promise.all(
       dirs.map(async (p) => ({
         name: p.name,
@@ -98,6 +102,7 @@ app.get('/api/projects', async (req, res) => {
         self: isSelf(p.path),
         github: await originRepo(p.path), // origin 이 GitHub 면 'owner/repo', 아니면 null
         note: notes[p.name] || '', // 메모(없으면 빈 문자열)
+        tabColor: colors[p.name] || null, // 터미널 탭 색(#rrggbb, 없으면 null)
       }))
     );
     const accState = readAccounts(ACCOUNTS_FILE);
@@ -133,7 +138,8 @@ app.post('/api/launch', async (req, res) => {
   // 이미 claude 가 열려 있으면 두 번째 창은 새 대화로 — 같은 대화를 두 창이 따로 이어 가지 않게
   const cont = hasSession(env.home, full) && !isRunning(runningPaths(), full);
   try {
-    await launch(env.distro, full, cont, { accountDir: acct.isDefault ? '' : acct.dir, label });
+    const color = readColors(TAB_COLORS_FILE)[name] || '';
+    await launch(env.distro, full, cont, { accountDir: acct.isDefault ? '' : acct.dir, label, color });
     rememberLast(ACCOUNTS_FILE, name, acct.id);
     res.json({ ok: true, continued: cont, account: { id: acct.id, label } });
   } catch (e) {
@@ -427,6 +433,7 @@ app.post('/api/projects/delete', async (req, res) => {
       }
     }
     const local = await trashLocal(env.projectsRoot, name);
+    if (local.ok) removeColor(TAB_COLORS_FILE, name);
     res.json({ ok: local.ok, github, local });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -453,6 +460,13 @@ app.post('/api/github/clone', async (req, res) => {
   }
 });
 
+// 터미널 탭 색: {name, color:'#rrggbb'|null(색 없음)}
+app.post('/api/projects/tab-color', (req, res) => {
+  const full = resolveProject(env.projectsRoot, req.body?.name);
+  if (!full) return res.status(400).json({ ok: false, error: 'unknown project' });
+  res.json(setColor(TAB_COLORS_FILE, req.body.name, req.body?.color ?? null));
+});
+
 app.post('/api/projects/rename', async (req, res) => {
   try {
     const runSet = runningPaths();
@@ -470,6 +484,7 @@ app.post('/api/projects/rename', async (req, res) => {
       renameInOrder(ORDER_FILE, req.body.name, req.body.newName);
       renameInTabs(TABS_FILE, req.body.name, req.body.newName);
       renameInAccounts(ACCOUNTS_FILE, req.body.name, req.body.newName);
+      renameColor(TAB_COLORS_FILE, req.body.name, req.body.newName);
     }
     res.json(r);
   } catch (e) {

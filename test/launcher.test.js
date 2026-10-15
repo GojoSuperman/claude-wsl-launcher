@@ -81,3 +81,10 @@ test('safeArg/buildStartArgs: 라벨의 cmd 특수문자는 빠진다', () => {
   const a = buildStartArgs('Ubuntu', '/p', false, '/x/s.sh', { label: 'R&D "팀"' });
   assert.deepEqual(a.slice(-2), ['--label', 'RD 팀']);
 });
+
+test('buildStartArgs: 탭 색 → --color rrggbb(# 없이), 잘못된 색은 넘기지 않음', () => {
+  const a = buildStartArgs('Ubuntu', '/home/g/projects/todo', true, '/x/launch-claude.sh', { color: '#FF8800' });
+  assert.deepEqual(a.slice(-3), ['--color', 'ff8800', '--continue']);
+  const b = buildStartArgs('Ubuntu', '/home/g/projects/todo', false, '/x/launch-claude.sh', { color: 'red & calc' });
+  assert.equal(b.includes('--color'), false);
+});

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # 새 WSL 창에서 claude 를 띄우는 런처 스크립트.
 # server/launcher.js 가 다음 형태로 호출한다:
-#   cmd /c start "" wsl.exe ... -- bash <이 스크립트> [--account <폴더>] [--label <이름>] [--continue]
+#   cmd /c start "" wsl.exe ... -- bash <이 스크립트> [--account <폴더>] [--label <이름>] [--color <rrggbb>] [--continue]
 #   --account: 그 계정 폴더(CLAUDE_CONFIG_DIR)로 실행 / --label: 탭 제목에 붙일 계정 이름
+#   --color: 카드에서 고른 터미널 탭 색(16진 6자리)
 #
 # 왜 인라인 bash 명령이 아니라 스크립트 파일인가:
 #   단축키 → 대시보드 서버(node) → cmd start → wsl.exe 의 다단 호출을
@@ -34,11 +35,13 @@ esac
 
 ACCOUNT_DIR=""
 LABEL=""
+COLOR=""
 CONT=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --account) ACCOUNT_DIR="${2:-}"; shift ;;
     --label) LABEL="${2:-}"; shift ;;
+    --color) COLOR="${2:-}"; shift ;;
     --continue) CONT=1 ;;
   esac
   shift
@@ -61,6 +64,13 @@ TITLE="${PWD##*/}"
 export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 printf '\033]0;%s\007' "$TITLE"
 [ -n "$LABEL" ] && echo "[계정: $LABEL]"
+
+# 탭 색(카드에서 고른 색): Windows Terminal 의 색 목록 200번을 그 RGB 로 바꾸고(OSC 4) 탭 색을 그 번호로 칠한다(DECAC).
+# Windows Terminal 이 아닌 콘솔은 그냥 무시한다. 16진 6자리가 아니면 내보내지 않는다(2026-10-15 실측: 기본·RGB 색 모두 칠해짐).
+case "$COLOR" in
+  [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+    printf '\033]4;200;rgb:%s/%s/%s\033\\\033[2;15;200,|' "${COLOR:0:2}" "${COLOR:2:2}" "${COLOR:4:2}" ;;
+esac
 
 # claude 실행. nvm 이 없거나 claude 가 nvm 밖(시스템/~/.local/bin/Windows PATH)에 있어도
 # PATH 에 있으면 그대로 실행된다 — 범용 폴백.

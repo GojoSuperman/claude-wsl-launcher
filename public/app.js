@@ -3,6 +3,7 @@ import { t, getLang, setLang } from './i18n.js';
 import { dialogConfirm, dialogAlert, dialogPrompt } from './dialog.js';
 import { createFolderPane } from './import-folders.js';
 import { initTrash } from './trash-modal.js';
+import { pickTabColor } from './tab-color.js';
 import { classify } from './sync-classify.js';
 import { computeCardStatus } from './card-status.js';
 import { groupProjects } from './project-group.js';
@@ -494,6 +495,7 @@ function relativeTime(iso) {
 // 카드 아이콘(인라인 SVG — 폰트 글리프에 의존하지 않아 어디서나 또렷)
 const ICON_PENCIL = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M11.7 1.6a1.4 1.4 0 0 1 2 2l-.8.8-2-2 .8-.8zM10 3.3l2 2-6.6 6.6-2.6.6.6-2.6L10 3.3z"/></svg>';
 const ICON_RENAME = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M1 4.5A1.5 1.5 0 0 1 2.5 3h5.6l1.5 1.5H13.5A1.5 1.5 0 0 1 15 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 11.5v-7zM2.5 4.5v7h11V6H9l-1.5-1.5H2.5zM5 7h6v1.2H5V7zm0 2.3h4v1.2H5V9.3z"/></svg>';
+const ICON_PALETTE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13c.9 0 1.4-.6 1.4-1.3 0-.4-.2-.7-.4-1-.2-.3-.4-.6-.4-1 0-.7.6-1.2 1.3-1.2H11.5A3.5 3.5 0 0 0 15 6.5C15 3.7 11.9 1.5 8 1.5zM4.5 8.2a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm2-2.7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm3 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm2 2.7a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M6.5 1.5h3l.5 1H13V4H3V2.5h2.5l1-1zM4 5h8l-.6 8.2a1.2 1.2 0 0 1-1.2 1.1H5.8a1.2 1.2 0 0 1-1.2-1.1L4 5z"/></svg>';
 
 // SVG 아이콘 + 라벨 버튼. svg 는 정적 마크업, label 은 textContent 로 안전 삽입.
@@ -563,6 +565,19 @@ grid.addEventListener('click', async (e) => {
   fillVisibility([name]);
 });
 
+// 🎨 탭 색 고르기 → 저장 → 목록 다시 그림(카드 색 점·버튼 색 갱신)
+async function doTabColor(p) {
+  const picked = await pickTabColor(p.name, p.tabColor);
+  if (picked === undefined || picked === p.tabColor) return;
+  try {
+    const r = await (await fetch('/api/projects/tab-color', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: p.name, color: picked }),
+    })).json();
+    if (!r.ok) { showBanner(t('tabColorFail', r.error ?? '')); return; }
+  } catch { showBanner(t('tabColorFail', '')); return; }
+  await loadProjects();
+}
+
 function renderCard(p) {
   const card = document.createElement('div');
   card.className = 'card';
@@ -579,6 +594,14 @@ function renderCard(p) {
   const nameText = document.createElement('span');
   nameText.className = 'name-text';
   nameText.textContent = p.name;
+  // 터미널 탭 색 점 — 탭과 카드를 짝지어 알아보게(색을 정했을 때만)
+  if (p.tabColor) {
+    const dot = document.createElement('span');
+    dot.className = 'tab-color-dot';
+    dot.style.background = p.tabColor;
+    dot.title = t('tabColorDotTitle');
+    name.appendChild(dot);
+  }
   name.appendChild(nameText);
   if (p.running) {
     const rb = document.createElement('span');
@@ -652,12 +675,14 @@ function renderCard(p) {
   const noteBtn = iconButton('card-note', ICON_PENCIL, t('noteBtn'), () => openNoteModal(p.name));
   const delBtn = iconButton('card-delete', ICON_TRASH, t('deleteTitle'), () => openDeleteModal(p.name));
   const renameBtn = iconButton('card-rename', ICON_RENAME, t('renameBtn'), () => doRename(p.name, renameBtn));
+  const colorBtn = iconButton('card-tabcolor', ICON_PALETTE, t('tabColorBtn'), () => doTabColor(p));
+  if (p.tabColor) colorBtn.querySelector('svg').style.color = p.tabColor;
   if (p.running || p.self) {
     // 실행 중이거나 이 대시보드 서버 자신의 폴더 — 옮기면 세션/서버가 깨지므로 미리 막는다
     renameBtn.disabled = true;
     renameBtn.title = p.self ? t('renameSelfBlocked') : t('renameRunningBlocked');
   }
-  actionsSecondary.append(noteBtn, renameBtn, delBtn);
+  actionsSecondary.append(noteBtn, colorBtn, renameBtn, delBtn);
 
   // 시안 A '액자형': 상태 안내 줄 + 정보를 둥근 안쪽 상자(액자)로 묶고, 버튼은 그 아래
   const info = document.createElement('div');

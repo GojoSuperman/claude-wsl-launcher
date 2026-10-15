@@ -198,6 +198,7 @@ Distro name, home and desktop paths are **detected at runtime**, so there is not
 - **Protection while running**: Pull on a card where claude is open shows a warning; opening the same project again starts a new conversation.
 - **✨ What's new**: after an update, the first launch introduces what changed; reopen it from the header.
 - **Notes**: a one-line note per card (stored in `~/.local/state/project-launcher/notes.json`).
+- **🎨 Terminal tab color**: pick a color on a card (8 presets or any color) and the claude terminal tab launched from it is painted that color (Windows Terminal). A matching dot appears before the card name.
 - **Rename project**: renames the folder and moves the claude history folder and per-folder claude settings along (keeps `--continue`). If origin is GitHub, runs `gh repo rename` to rename the repo and update the remote URL.
 - **Name rule**: letters, digits, `-`, `_` and `.` only (GitHub repo rule).
 - **Self-update**: `⟳ Update` → check → `git pull --ff-only` + `npm install` → shut down to apply. If your local edits overlap the incoming changes, or the history has diverged, it **changes nothing** and tells you why.
