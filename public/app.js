@@ -924,22 +924,28 @@ function launchGroup(name, launchBtn, card) {
   return group;
 }
 
-async function doLaunch(name, btn, card, accountId) {
+async function doLaunch(name, btn, card, accountId, force = false) {
   // 이미 이 PC 에서 실행 중이면 중복 실행 전에 확인(경고 후 허용)
   const p = projects.get(name);
-  if (p && p.running && !(await dialogConfirm(t('launchRunningConfirm')))) return;
+  if (!force && p && p.running && !(await dialogConfirm(t('launchRunningConfirm')))) return;
   hideBanner();
   btn.disabled = true;
+  let opening = false; // 성공하면 잠시 '여는 중…' 으로 두어 또 누를 필요가 없음을 보여 준다
+  let starting = false; // 방금 연 창이 아직 뜨는 중 → 이 요청을 끝낸 뒤 물어본다
   try {
     const res = await fetch('/api/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, account: accountId }),
+      body: JSON.stringify({ name, account: accountId, force }),
     });
     const data = await res.json();
-    if (data.ok) {
+    if (data.code === 'starting') {
+      starting = true;
+    } else if (data.ok) {
       rememberLocal(name, data.account.id);
-      if (p) setLaunchLabel(btn, p);
+      opening = true;
+      btn.textContent = t('launchOpening');
+      setTimeout(() => { btn.disabled = false; if (p) setLaunchLabel(btn, p); }, 6000);
       const toast = document.createElement('span');
       toast.className = 'toast';
       toast.textContent = data.account.label ? t('launchToastAccount', data.account.label) : t('launchToast');
@@ -954,8 +960,10 @@ async function doLaunch(name, btn, card, accountId) {
   } catch {
     showBanner(t('launchReqFail'));
   } finally {
-    btn.disabled = false;
+    if (!opening) btn.disabled = false;
   }
+  // 그래도 열면 새 대화로(서버가 force 를 받으면 이어 열지 않음)
+  if (starting && await dialogConfirm(t('launchStartingConfirm'))) await doLaunch(name, btn, card, accountId, true);
 }
 
 async function doFetch(name, btn) {

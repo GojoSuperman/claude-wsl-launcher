@@ -38,6 +38,7 @@ import { check as checkUpdate, update as runUpdate } from './updater.js';
 import { createConsoleStream } from './console-stream.js';
 import { createIdleShutdown } from './idle-shutdown.js';
 import { findRunningLauncher } from './single-instance.js';
+import { createRecentLaunches } from './recent-launches.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 이 대시보드 서버 자신의 프로젝트 폴더 — 이름 변경 대상에서 제외(서버가 깨짐)
@@ -115,6 +116,9 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+// 방금 실행을 보낸 폴더(창이 뜨는 중) — 그 사이 또 누르면 같은 대화를 두 창이 이어 열지 않게
+const recentLaunches = createRecentLaunches({ ttlMs: 60_000 });
+
 app.post('/api/launch', async (req, res) => {
   const name = req.body?.name;
   const full = resolveProject(env.projectsRoot, name);
@@ -135,11 +139,16 @@ app.post('/api/launch', async (req, res) => {
     return res.status(409).json({ ok: false, code: 'account-missing', id: acct.id, dir: acct.dir });
   }
   const label = list.length > 1 ? accountLabel(acct) : '';
-  // 이미 claude 가 열려 있으면 두 번째 창은 새 대화로 — 같은 대화를 두 창이 따로 이어 가지 않게
-  const cont = hasSession(env.home, full) && !isRunning(runningPaths(), full);
+  // 이미 claude 가 열려 있으면 두 번째 창은 새 대화로 — 같은 대화를 두 창이 따로 이어 가지 않게.
+  // 방금 실행해 창이 아직 뜨는 중이면(프로세스가 아직 없음) 먼저 확인을 받는다(force 로 다시 오면 새 대화로).
+  const running = isRunning(runningPaths(), full);
+  const starting = !running && recentLaunches.isStarting(full);
+  if (starting && req.body?.force !== true) return res.status(409).json({ ok: false, code: 'starting' });
+  const cont = hasSession(env.home, full) && !running && !starting;
   try {
     const color = readColors(TAB_COLORS_FILE)[name] || '';
     await launch(env.distro, full, cont, { accountDir: acct.isDefault ? '' : acct.dir, label, color });
+    recentLaunches.mark(full);
     rememberLast(ACCOUNTS_FILE, name, acct.id);
     res.json({ ok: true, continued: cont, account: { id: acct.id, label } });
   } catch (e) {
