@@ -4,6 +4,7 @@ import { dialogConfirm, dialogAlert, dialogPrompt } from './dialog.js';
 import { createFolderPane } from './import-folders.js';
 import { initTrash } from './trash-modal.js';
 import { pickTabColor } from './tab-color.js';
+import { closeOrCover } from './single-window.js';
 import { classify } from './sync-classify.js';
 import { computeCardStatus } from './card-status.js';
 import { groupProjects } from './project-group.js';
@@ -1607,7 +1608,8 @@ shutdownBtn.addEventListener('click', async () => {
   try {
     await fetch('/api/shutdown', { method: 'POST' });
   } catch { /* 종료 중 연결 끊김은 정상 */ }
-  showBanner(t('shutdownDone'));
+  // 서버가 꺼졌으니 런처 창도 닫는다(막히면 '종료했어요 — 닫아 주세요' 로 덮음)
+  closeOrCover('shutdownDoneTitle', 'shutdownDone');
 });
 
 // 언어 전환: 버튼 클릭 → setLang(이벤트 발화) → i18n:change 에서 재렌더
