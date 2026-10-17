@@ -139,11 +139,14 @@ app.post('/api/launch', async (req, res) => {
     return res.status(409).json({ ok: false, code: 'account-missing', id: acct.id, dir: acct.dir });
   }
   const label = list.length > 1 ? accountLabel(acct) : '';
-  // 이미 claude 가 열려 있으면 두 번째 창은 새 대화로 — 같은 대화를 두 창이 따로 이어 가지 않게.
-  // 방금 실행해 창이 아직 뜨는 중이면(프로세스가 아직 없음) 먼저 확인을 받는다(force 로 다시 오면 새 대화로).
+  // 이미 claude 가 열려 있거나(running) 방금 실행해 창이 아직 뜨는 중이면(starting) 먼저 확인을 받는다.
+  // 판단은 실행 순간 서버가 한다 — 화면의 카드 정보는 오래됐을 수 있다(그래서 확인창이 안 뜨던 일이 있었음).
+  // force 로 다시 오면 같은 대화를 두 창이 따로 이어 가지 않게 새 대화로 연다.
   const running = isRunning(runningPaths(), full);
   const starting = !running && recentLaunches.isStarting(full);
-  if (starting && req.body?.force !== true) return res.status(409).json({ ok: false, code: 'starting' });
+  if ((running || starting) && req.body?.force !== true) {
+    return res.status(409).json({ ok: false, code: running ? 'running' : 'starting' });
+  }
   const cont = hasSession(env.home, full) && !running && !starting;
   try {
     const color = readColors(TAB_COLORS_FILE)[name] || '';

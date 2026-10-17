@@ -925,13 +925,12 @@ function launchGroup(name, launchBtn, card) {
 }
 
 async function doLaunch(name, btn, card, accountId, force = false) {
-  // 이미 이 PC 에서 실행 중이면 중복 실행 전에 확인(경고 후 허용)
+  // 이미 실행 중·켜는 중인지는 서버가 실행 순간 판단해 409(running|starting)로 알려 준다 → 확인 후 force
   const p = projects.get(name);
-  if (!force && p && p.running && !(await dialogConfirm(t('launchRunningConfirm')))) return;
   hideBanner();
   btn.disabled = true;
   let opening = false; // 성공하면 잠시 '여는 중…' 으로 두어 또 누를 필요가 없음을 보여 준다
-  let starting = false; // 방금 연 창이 아직 뜨는 중 → 이 요청을 끝낸 뒤 물어본다
+  let busy = null; // 'running'(이미 열림) | 'starting'(방금 연 창이 뜨는 중) → 이 요청을 끝낸 뒤 물어본다
   try {
     const res = await fetch('/api/launch', {
       method: 'POST',
@@ -939,8 +938,8 @@ async function doLaunch(name, btn, card, accountId, force = false) {
       body: JSON.stringify({ name, account: accountId, force }),
     });
     const data = await res.json();
-    if (data.code === 'starting') {
-      starting = true;
+    if (data.code === 'running' || data.code === 'starting') {
+      busy = data.code;
     } else if (data.ok) {
       rememberLocal(name, data.account.id);
       opening = true;
@@ -963,7 +962,9 @@ async function doLaunch(name, btn, card, accountId, force = false) {
     if (!opening) btn.disabled = false;
   }
   // 그래도 열면 새 대화로(서버가 force 를 받으면 이어 열지 않음)
-  if (starting && await dialogConfirm(t('launchStartingConfirm'))) await doLaunch(name, btn, card, accountId, true);
+  if (busy && await dialogConfirm(t(busy === 'running' ? 'launchRunningConfirm' : 'launchStartingConfirm'))) {
+    await doLaunch(name, btn, card, accountId, true);
+  }
 }
 
 async function doFetch(name, btn) {
