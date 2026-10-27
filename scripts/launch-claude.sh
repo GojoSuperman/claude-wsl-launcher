@@ -4,6 +4,7 @@
 #   cmd /c start "" wsl.exe ... -- bash <이 스크립트> [--account <폴더>] [--label <이름>] [--color <rrggbb>] [--continue]
 #   --account: 그 계정 폴더(CLAUDE_CONFIG_DIR)로 실행 / --label: 탭 제목에 붙일 계정 이름
 #   --color: 카드에서 고른 터미널 탭 색(16진 6자리)
+#   --login: 로그인 창 — 대화 대신 로그인 명령(claude auth login)을 바로 실행하고 로그인된 계정을 보여 준다
 #
 # 왜 인라인 bash 명령이 아니라 스크립트 파일인가:
 #   단축키 → 대시보드 서버(node) → cmd start → wsl.exe 의 다단 호출을
@@ -37,12 +38,14 @@ ACCOUNT_DIR=""
 LABEL=""
 COLOR=""
 CONT=0
+LOGIN=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --account) ACCOUNT_DIR="${2:-}"; shift ;;
     --label) LABEL="${2:-}"; shift ;;
     --color) COLOR="${2:-}"; shift ;;
     --continue) CONT=1 ;;
+    --login) LOGIN=1 ;;
   esac
   shift
 done
@@ -71,6 +74,25 @@ case "$COLOR" in
   [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
     printf '\033]4;200;rgb:%s/%s/%s\033\\\033[2;15;200,|' "${COLOR:0:2}" "${COLOR:2:2}" "${COLOR:4:2}" ;;
 esac
+
+# 로그인 창: claude 는 브라우저 claude.ai 에 그때 로그인된 계정·조직으로 연결된다 → 끝나면 어느 계정인지 보여 준다
+if [ "$LOGIN" = 1 ]; then
+  echo "브라우저가 열리면, claude.ai 에 이 칸에 쓸 계정이 로그인돼 있는지 확인한 뒤 [승인]을 누르세요."
+  echo
+  claude auth login --claudeai
+  echo
+  ST="$(claude auth status 2>/dev/null)"
+  pick() { printf '%s' "$ST" | grep -o "\"$1\": *\"[^\"]*\"" | head -1 | sed 's/.*: *"\(.*\)"/\1/'; }
+  if printf '%s' "$ST" | grep -q '"loggedIn": *true'; then
+    echo "✅ 로그인됨: $(pick email) · $(pick orgName) ($(pick subscriptionType))"
+    echo "   계정이 맞지 않으면 claude.ai 에서 계정을 바꾼 뒤 런처의 [다시 로그인]을 한 번 더 누르세요."
+  else
+    echo "⚠ 로그인이 끝나지 않았어요. 런처의 [👤 계정]에서 다시 시도하세요."
+  fi
+  echo
+  read -r -p "Enter 를 누르면 이 창이 닫혀요. " _
+  exit 0
+fi
 
 # claude 실행. nvm 이 없거나 claude 가 nvm 밖(시스템/~/.local/bin/Windows PATH)에 있어도
 # PATH 에 있으면 그대로 실행된다 — 범용 폴백.

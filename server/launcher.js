@@ -30,7 +30,7 @@ export function resolveCmd(env = process.env, existsSync = fs.existsSync) {
  * 새 WSL 콘솔 창에서 claude 를 띄우는 cmd.exe 인자 배열 생성 (순수).
  * cont=true → claude --continue, false → claude
  * opts.accountDir → --account <폴더>(추가 계정), opts.label → --label <이름>(탭 제목·안내),
- * opts.color → --color <rrggbb>(Windows Terminal 탭 색)
+ * opts.color → --color <rrggbb>(Windows Terminal 탭 색), opts.login → --login(로그인 창 — 대화 대신 로그인 명령)
  *
  * `cmd /c start "" wsl.exe ...` — start 의 첫 따옴표 인자는 창 제목이므로 빈 문자열을
  * 자리채움으로 넣는다. 인자별 인용은 WSL interop 이 공백 포함 인자를 자동으로 큰따옴표로
@@ -53,7 +53,8 @@ export function buildStartArgs(distro, projectPath, cont, scriptPath = LAUNCH_SC
   if (label) args.push('--label', label);
   const color = /^#?([0-9a-fA-F]{6})$/.exec(opts.color || '');
   if (color) args.push('--color', color[1].toLowerCase()); // 탭 색 — 16진 6자리만 넘긴다(cmd 인자)
-  if (cont) args.push('--continue');
+  if (opts.login) args.push('--login'); // 로그인 창: 대화 대신 로그인 명령을 바로
+  else if (cont) args.push('--continue');
   return args;
 }
 

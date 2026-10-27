@@ -147,7 +147,9 @@ h1 { font-size: 1.25rem; margin: 0; }
 .acct-row button.danger-lite { color: #e5534b; border-color: #e5534b66; }
 button { padding: .5rem .8rem; border-radius: 8px; border: 1px solid #8886; cursor: pointer; background: #4a90e2; color: #fff; }
 button:disabled { opacity: .5; cursor: default; }
-.header-actions { display: flex; gap: .5rem; align-items: center; }
+.header-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.header-actions button { white-space: nowrap; } /* 버튼 글자가 두 줄로 깨지지 않게 — 좁으면 버튼째 다음 줄로 */
+header h1 { white-space: nowrap; }
 #refresh { background: transparent; color: inherit; }
 
 /* 언어 전환 세그먼트 */
@@ -356,3 +358,14 @@ button.trash-danger { background: transparent; color: #e74c3c; border-color: #e7
 .tc-custom { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; font-size: .9rem; }
 .tc-custom input { width: 2.2rem; height: 1.8rem; padding: 0; border: none; background: none; cursor: pointer; }
 .tc-row .ghost { background: transparent; color: inherit; border-color: #8886; }
+
+/* 계정 관리: 로그인한 조직, 섞임 경고 */
+.acct-org { font-size: .8rem; opacity: .85; margin-top: .1rem; }
+.acct-dup { font-size: .8rem; color: #e5534b; margin-top: .25rem; line-height: 1.4; }
+#accounts-btn.ghost { background: transparent; color: inherit; }
+#accounts-btn.warn { color: #e5534b; border-color: #e5534b88; }
+/* 로그인 전 확인 창 */
+#login-prep { z-index: 260; }
+.login-prep-box { max-width: 520px; }
+.login-prep-steps { margin: .6rem 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: .5rem; line-height: 1.5; font-size: .92rem; }
+.login-prep-box .dlg-actions .ghost { background: transparent; color: inherit; border-color: #8886; }

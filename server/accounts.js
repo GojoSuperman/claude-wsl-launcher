@@ -71,21 +71,49 @@ export function writeAccounts(file, state) {
 }
 
 export function readEmail(claudeJsonPath) {
+  return readLogin(claudeJsonPath).email;
+}
+
+/**
+ * 그 계정 칸이 로그인한 계정·조직. 이메일 하나가 개인 계정과 조직(학교·회사)에 함께 속할 수 있어
+ * 이메일만으로는 어느 쪽으로 로그인했는지 모른다 → 조직 이름·id·종류도 읽는다(토큰은 읽지 않음).
+ * @returns {{email:string, org:string, orgId:string, orgType:string}}
+ */
+export function readLogin(claudeJsonPath) {
+  const str = (v) => (typeof v === 'string' ? v : '');
   try {
-    const e = JSON.parse(fs.readFileSync(claudeJsonPath, 'utf8'))?.oauthAccount?.emailAddress;
-    return typeof e === 'string' ? e : '';
+    const o = JSON.parse(fs.readFileSync(claudeJsonPath, 'utf8'))?.oauthAccount || {};
+    return { email: str(o.emailAddress), org: str(o.organizationName), orgId: str(o.organizationUuid), orgType: str(o.organizationType) };
   } catch {
-    return '';
+    return { email: '', org: '', orgId: '', orgType: '' };
   }
 }
 
-/** 기본 계정 + 추가 계정. 이메일·로그인 여부·폴더 존재를 그때그때 채운다. */
+/**
+ * 같은 이메일·같은 조직으로 로그인한 칸들의 묶음(2칸 이상만). 계정을 나눠 놓고 실제로는 한 곳에 로그인한 '섞임' 경고용.
+ * 조직 정보가 없으면 이메일만으로 묶는다. 로그인 안 한 칸은 제외.
+ * @returns {string[][]} 계정 id 묶음들
+ */
+export function sameOrgGroups(list) {
+  const by = new Map();
+  for (const a of list) {
+    if (!a.loggedIn || !a.email) continue;
+    const k = `${a.email.toLowerCase()}|${a.orgId || ''}`;
+    by.set(k, [...(by.get(k) || []), a.id]);
+  }
+  return [...by.values()].filter((ids) => ids.length > 1);
+}
+
+/** 기본 계정 + 추가 계정. 이메일·조직·로그인 여부·폴더 존재를 그때그때 채운다. */
 export function listAccounts(home, state) {
   const def = { id: DEFAULT_ID, dir: path.join(home, '.claude'), alias: state.defaultAlias, isDefault: true };
-  return [def, ...state.accounts.map((a) => ({ ...a, isDefault: false }))].map((a) => {
-    const email = readEmail(a.isDefault ? path.join(home, '.claude.json') : path.join(a.dir, '.claude.json'));
-    return { ...a, email, loggedIn: !!email, exists: a.isDefault || fs.existsSync(a.dir) };
+  const list = [def, ...state.accounts.map((a) => ({ ...a, isDefault: false }))].map((a) => {
+    const login = readLogin(a.isDefault ? path.join(home, '.claude.json') : path.join(a.dir, '.claude.json'));
+    return { ...a, ...login, loggedIn: !!login.email, exists: a.isDefault || fs.existsSync(a.dir) };
   });
+  // 다른 칸과 같은 이메일·조직으로 로그인돼 있음(나눠 둔 계정이 실제로는 한 곳) → 화면이 경고
+  const dup = new Set(sameOrgGroups(list).flat());
+  return list.map((a) => ({ ...a, dupLogin: dup.has(a.id) }));
 }
 
 /** 버튼·탭 제목용 짧은 이름 */

@@ -88,3 +88,9 @@ test('buildStartArgs: 탭 색 → --color rrggbb(# 없이), 잘못된 색은 넘
   const b = buildStartArgs('Ubuntu', '/home/g/projects/todo', false, '/x/launch-claude.sh', { color: 'red & calc' });
   assert.equal(b.includes('--color'), false);
 });
+
+test('buildStartArgs: 로그인 창 → --login (이어서 실행은 붙이지 않음)', () => {
+  const a = buildStartArgs('Ubuntu', '/home/g/projects', true, '/x/launch-claude.sh', { accountDir: '/home/g/.claude-acct-2', label: '교육용', login: true });
+  assert.deepEqual(a.slice(-5), ['--account', '/home/g/.claude-acct-2', '--label', '교육용', '--login']);
+  assert.equal(a.includes('--continue'), false);
+});

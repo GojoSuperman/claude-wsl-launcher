@@ -28,7 +28,7 @@ import { readColors, setColor, renameColor, removeColor } from './tab-colors.js'
 import { readOrder, writeOrder, renameInOrder } from './order.js';
 import { readTabs, writeTabs, renameInTabs } from './tabs.js';
 import {
-  DEFAULT_ID, readAccounts, listAccounts, accountLabel, addAccount, setAlias, removeAccount,
+  DEFAULT_ID, readAccounts, listAccounts, accountLabel, addAccount, setAlias, removeAccount, sameOrgGroups,
   resolveLaunchAccount, rememberLast, renameInAccounts,
 } from './accounts.js';
 import { clone as cloneProject } from './cloner.js';
@@ -165,8 +165,10 @@ function accountsView() {
   return { accounts: listAccounts(env.home, state), lastByProject: state.lastByProject };
 }
 // 로그인 창: 그 계정으로 스캔 폴더에서 claude 실행(새 계정이면 claude 가 로그인 화면부터 띄운다)
+// 로그인 창: 그 계정 칸으로 claude 를 띄운다(안에서 /login). 기본 칸은 폴더를 넘기지 않는다 —
+// CLAUDE_CONFIG_DIR=~/.claude 로 띄우면 claude 가 ~/.claude.json 이 아닌 ~/.claude/.claude.json 을 써서 엉뚱한 곳에 로그인된다.
 async function openLoginWindow(acct) {
-  await launch(env.distro, env.projectsRoot, false, { accountDir: acct.dir, label: accountLabel(acct) });
+  await launch(env.distro, env.projectsRoot, false, { accountDir: acct.isDefault ? '' : acct.dir, label: accountLabel(acct), login: true });
 }
 
 app.get('/api/accounts', (req, res) => {
@@ -194,7 +196,7 @@ app.post('/api/accounts/remove', (req, res) => {
 });
 
 app.post('/api/accounts/login', async (req, res) => {
-  const acct = accountsView().accounts.find((a) => a.id === req.body?.id && !a.isDefault);
+  const acct = accountsView().accounts.find((a) => a.id === req.body?.id); // 기본 칸도 다시 로그인 가능
   if (!acct) return res.status(400).json({ ok: false, error: 'unknown account' });
   if (!acct.exists) return res.status(409).json({ ok: false, code: 'account-missing', id: acct.id, dir: acct.dir });
   try {

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  DEFAULT_ID, normalizeAccounts, readAccounts, writeAccounts, readEmail, listAccounts, accountLabel,
+  DEFAULT_ID, normalizeAccounts, readAccounts, writeAccounts, readEmail, listAccounts, accountLabel, sameOrgGroups,
   addAccount, setAlias, removeAccount, resolveLaunchAccount, rememberLast, renameInAccounts,
 } from '../server/accounts.js';
 
@@ -165,4 +165,24 @@ test('writeAccounts: 기존 파일이 깨져 있으면 덮어쓰기 전에 .bad-
   assert.deepEqual(readAccounts(file).accounts, []); // 새 파일은 정상 JSON
   rememberLast(file, 'p1', DEFAULT_ID); // 이번엔 정상 파일이라 추가 백업 없음
   assert.equal(fs.readdirSync(path.dirname(file)).filter((n) => n.startsWith('accounts.json.bad-')).length, 1);
+});
+
+test('listAccounts: 로그인한 조직(이름·id·종류)도 채운다 — 같은 이메일이 여러 조직에 속할 때 구분용', () => {
+  const { home, file } = setup();
+  addAccount(home, file);
+  fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ oauthAccount: { emailAddress: 'me@x.com', organizationName: '내 개인', organizationUuid: 'org-p', organizationType: 'claude_max' } }));
+  fs.writeFileSync(path.join(home, '.claude-acct-2', '.claude.json'), JSON.stringify({ oauthAccount: { emailAddress: 'me@x.com', organizationName: '학교', organizationUuid: 'org-s', organizationType: 'claude_team' } }));
+  const list = listAccounts(home, readAccounts(file));
+  assert.deepEqual(list.map((a) => [a.email, a.org, a.orgId, a.orgType]), [['me@x.com', '내 개인', 'org-p', 'claude_max'], ['me@x.com', '학교', 'org-s', 'claude_team']]);
+  assert.deepEqual(sameOrgGroups(list), []);
+  assert.deepEqual(list.map((a) => a.dupLogin), [false, false]);
+  fs.writeFileSync(path.join(home, '.claude-acct-2', '.claude.json'), JSON.stringify({ oauthAccount: { emailAddress: 'me@x.com', organizationName: '내 개인', organizationUuid: 'org-p' } }));
+  assert.deepEqual(listAccounts(home, readAccounts(file)).map((a) => a.dupLogin), [true, true], '두 칸이 같은 곳에 로그인 → 섞임 표시');
+});
+
+test('sameOrgGroups: 두 칸 이상이 같은 이메일·같은 조직으로 로그인돼 있으면 그 묶음(섞임 경고용), 로그인 안 한 칸은 제외', () => {
+  const acc = (id, email, orgId) => ({ id, email, orgId, loggedIn: !!email });
+  assert.deepEqual(sameOrgGroups([acc('default', 'me@x.com', 'o1'), acc('a2', 'me@x.com', 'o1'), acc('a3', 'me@x.com', 'o2')]), [['default', 'a2']]);
+  assert.deepEqual(sameOrgGroups([acc('default', 'me@x.com', 'o1'), acc('a2', '', '')]), []);
+  assert.deepEqual(sameOrgGroups([acc('default', 'me@x.com', ''), acc('a2', 'me@x.com', '')]), [['default', 'a2']], '조직 정보가 없으면 이메일만으로');
 });

@@ -143,11 +143,17 @@ npm start       # success when you see "프로젝트 런처: http://127.0.0.1:41
 
 ### Using several Claude accounts (optional)
 
-Click **▾** next to a card's launch button → **＋ Add account**. A login window opens; log in there with another Claude account and close it. The account's email then appears in the ▾ menu.
+Click **[👤 Accounts]** at the top → **＋ Add account**. A "check before logging in" window appears.
+1. Click **[Open claude.ai]** and check that the name at the bottom left is **the account this slot should use**. If not, switch it from the name ⌄ menu, or log out and log in with that account. — claude login follows **whichever account is logged into claude.ai in the browser at that moment** (the authorize page has no account picker).
+2. **[Checked — open login window]** → choose 1 (subscription) in the terminal → **[Authorize]** in the browser. The terminal then shows "Logged in: email · organization (plan)".
+
+On a card, **▾** next to the launch button picks which account to open with (when there are two or more).
+
+- Each account shows the **organization and plan it is logged into**, and ⚠ warns when two slots are logged into the same place. If a slot is logged in wrongly, fix it with that slot's **[Log in again]** (the default account too).
 
 - Chat history, instructions (CLAUDE.md), settings, plugins, skills and MCP are shared with the default account; only login and usage are separate. So you can 'continue' the same project from any account.
 - Each project remembers the account it last used. The launch button and the terminal tab show the account name.
-- In **⚙ Manage accounts** you can give an account an alias or remove it from the list (the account folder `~/.claude-acct-N` and its login are not deleted).
+- In **[👤 Accounts]** you can give an account an alias or remove it from the list (the account folder `~/.claude-acct-N` and its login are not deleted).
 
 ---
 

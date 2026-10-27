@@ -5,6 +5,26 @@
 
 export const RELEASES = [
   {
+    id: '2026-10-27',
+    items: {
+      ko: [
+        { t: '👤 계정 관리가 상단 한 곳으로', d: '상단 [👤 계정] 버튼에서 계정 추가·별명·다시 로그인·목록에서 빼기를 해요. 카드의 ▾ 는 어느 계정으로 열지 고르기만(계정이 둘 이상일 때).' },
+        { t: '🏢 계정마다 로그인한 조직·요금제 표시', d: '이메일 옆에 "Modulabs (팀)", "개인 (Pro)" 처럼 실제로 로그인된 조직이 보여요. 두 칸이 같은 곳에 로그인돼 있으면 ⚠ 로 알려 줘요 — "교육용으로 열었는데 개인 계정" 같은 섞임을 바로 알 수 있어요.' },
+        { t: '🔐 로그인 전에 claude.ai 계정 확인', d: 'claude 로그인은 그때 브라우저 claude.ai 에 로그인된 계정을 따라가요. 그래서 [다시 로그인]·[계정 추가]를 누르면 claude.ai 를 먼저 열어 계정을 확인하게 하고, 터미널에서 로그인이 바로 시작돼 끝나면 어느 계정인지 보여 줘요. 기본 계정도 다시 로그인할 수 있어요.' },
+      ],
+      en: [
+        { t: '👤 Accounts managed in one place at the top', d: 'Add accounts, set aliases, log in again or remove them from the [👤 Accounts] button at the top. The ▾ on a card only picks which account to open with (when there are two or more).' },
+        { t: '🏢 Each account shows its organization and plan', d: 'Next to the email you see the organization it is actually logged into, like "Modulabs (Team)" or "Personal (Pro)". If two slots are logged into the same place, ⚠ warns you — so a mix-up like "opened the school slot but got the personal account" is visible right away.' },
+        { t: '🔐 Check the claude.ai account before logging in', d: 'claude login follows whichever account is logged into claude.ai in the browser at that moment. So [Log in again] and [Add account] first let you open claude.ai to check the account; the terminal then starts the login right away and shows which account you got. The default account can be logged in again too.' },
+      ],
+      ja: [
+        { t: '👤 アカウント管理を上部の一か所に', d: '上部の［👤 アカウント］ボタンで追加・別名・再ログイン・一覧から外すができます。カードの ▾ はどのアカウントで開くかを選ぶだけ(二つ以上のとき)。' },
+        { t: '🏢 アカウントごとにログインした組織・プランを表示', d: 'メールの横に「Modulabs (チーム)」「個人 (Pro)」のように実際にログインしている組織が表示されます。二つの枠が同じところにログインしていると ⚠ で知らせます — 「教育用で開いたのに個人アカウント」のような混ざりがすぐ分かります。' },
+        { t: '🔐 ログインの前に claude.ai のアカウントを確認', d: 'claude のログインは、そのときブラウザの claude.ai にログインしているアカウントに従います。そこで［再ログイン］［アカウント追加］を押すと先に claude.ai を開いて確認でき、ターミナルではすぐにログインが始まり、終わるとどのアカウントかを表示します。既定のアカウントも再ログインできます。' },
+      ],
+    },
+  },
+  {
     id: '2026-10-15',
     items: {
       ko: [

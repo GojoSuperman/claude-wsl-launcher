@@ -63,3 +63,20 @@ test('--color rrggbb: 탭 색 시퀀스(색 목록 200번을 그 색으로 → �
   assert.deepEqual(bad.colors, []);
   assert.equal(bad.stdout.includes('\x1b[2;15;'), false);
 });
+
+test('--login: 대화 대신 로그인 명령(claude auth login --claudeai)을 바로 실행하고, 끝나면 로그인된 계정을 보여 준다', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'launch-login-'));
+  const home = path.join(root, 'home'); const proj = path.join(root, 'p'); const bin = path.join(root, 'bin');
+  fs.mkdirSync(path.join(home, '.claude'), { recursive: true }); fs.mkdirSync(proj); fs.mkdirSync(bin);
+  const log = path.join(root, 'calls.txt');
+  // 가짜 claude: 호출 인자를 쌓고, auth status 면 로그인 정보 JSON 을 낸다
+  fs.writeFileSync(path.join(bin, 'claude'), `#!/bin/sh\necho "$*" >> "${log}"\nif [ "$1 $2" = "auth status" ]; then echo '{"loggedIn": true, "email": "me@x.com", "orgName": "내 개인", "subscriptionType": "pro"}'; fi\n`, { mode: 0o755 });
+  const r = spawnSync('bash', [SCRIPT, '--label', '개인', '--login'], {
+    cwd: proj, input: '\n', encoding: 'utf8',
+    env: { PATH: `${bin}:/usr/bin:/bin`, HOME: home, NVM_DIR: path.join(root, 'no-nvm') },
+  });
+  assert.deepEqual(fs.readFileSync(log, 'utf8').trim().split('\n'), ['auth login --claudeai', 'auth status']);
+  assert.ok(r.stdout.includes('me@x.com'), r.stdout);
+  assert.ok(r.stdout.includes('내 개인'));
+  assert.ok(r.stdout.includes('pro'));
+});

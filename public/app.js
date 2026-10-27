@@ -12,7 +12,7 @@ import { isTeamRole } from './team-role.js';
 import { initTeamModal, openTeamModal } from './team-modal.js';
 import {
   initAccounts, setAccounts, getAccounts, accountFor, rememberLocal, shortLabel, fullLabel,
-  refreshAccounts, addAccountFlow, openAccountsModal, removeAccountFlow,
+  refreshAccounts, removeAccountFlow,
 } from './accounts.js';
 
 const grid = document.getElementById('grid');
@@ -876,6 +876,7 @@ function launchGroup(name, launchBtn, card) {
   more.className = 'launch-more';
   more.textContent = '▾';
   more.title = t('launchProfileTitle');
+  more.hidden = getAccounts().length < 2; // 계정이 하나면 고를 것이 없다
   more.setAttribute('aria-haspopup', 'menu');
   const menu = document.createElement('div');
   menu.className = 'launch-menu';
@@ -901,9 +902,7 @@ function launchGroup(name, launchBtn, card) {
       item([mark, text], () => doLaunch(name, launchBtn, card, a.id));
       menu.lastChild.classList.add('acct-item');
     }
-    menu.appendChild(document.createElement('hr'));
-    item([t('accountAdd')], addAccountFlow);
-    item([t('accountManage')], openAccountsModal);
+    // 계정 추가·관리는 상단 [👤 계정 관리] 한 곳에서 — 카드 메뉴는 어느 계정으로 열지 고르기만
   };
   const close = (e) => {
     if (e.type === 'keydown' && e.key !== 'Escape') return;
