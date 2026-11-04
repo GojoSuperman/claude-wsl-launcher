@@ -75,6 +75,22 @@ case "$COLOR" in
     printf '\033]4;200;rgb:%s/%s/%s\033\\\033[2;15;200,|' "${COLOR:0:2}" "${COLOR:2:2}" "${COLOR:4:2}" ;;
 esac
 
+# Windows 쪽 claude 는 실행하지 않는다: CLAUDE_CONFIG_DIR 이 Windows 프로세스로 전달되지 않아
+# 어느 칸을 골라도 Windows 에 로그인된 계정으로 열리고, 로그인 창도 Windows 쪽 로그인을 바꾼다.
+# (2026-11-04 실측: WSL 설치가 끊겨 PATH 의 Windows claude 가 잡히자 팀 칸이 개인 계정으로 열림)
+. "$(dirname "$0")/lib/doctor-checks.sh"
+CLAUDE_PATH="$(command -v claude 2>/dev/null || true)"
+if [ "$(classify_claude "$CLAUDE_PATH")" = windows ]; then
+  echo "⚠ WSL 에 claude 가 없어 실행을 멈췄어요."
+  echo "   지금 잡힌 것은 Windows 쪽 claude 입니다: $CLAUDE_PATH"
+  echo "   이대로 열면 고른 계정과 다른 계정으로 열려요."
+  echo
+  echo "   이 창에서 아래 명령으로 설치한 뒤 다시 실행하세요:"
+  echo "   npm install -g @anthropic-ai/claude-code"
+  echo
+  exec bash -i
+fi
+
 # 로그인 창: claude 는 브라우저 claude.ai 에 그때 로그인된 계정·조직으로 연결된다 → 끝나면 어느 계정인지 보여 준다
 if [ "$LOGIN" = 1 ]; then
   echo "브라우저가 열리면, claude.ai 에 이 칸에 쓸 계정이 로그인돼 있는지 확인한 뒤 [승인]을 누르세요."

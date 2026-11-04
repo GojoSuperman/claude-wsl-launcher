@@ -159,7 +159,7 @@ case "$(classify_claude "$CLAUDE_PATH")" in
               npm install -g @anthropic-ai/claude-code ;;
   windows)
     warn "claude 가 '윈도우 쪽'에만 깔려 있어요: $CLAUDE_PATH"
-    warn "버튼으로 실행할 때 가끔 안 열릴 수 있어요."
+    warn "고른 계정으로 열 수 없어서, 버튼으로 실행하면 설치 안내만 나오고 열리지 않아요."
     offer_fix "리눅스(WSL) 쪽에 '제대로' 다시 설치할까요? (권장)" \
               npm install -g @anthropic-ai/claude-code ;;
   native)

@@ -64,6 +64,36 @@ test('--color rrggbb: 탭 색 시퀀스(색 목록 200번을 그 색으로 → �
   assert.equal(bad.stdout.includes('\x1b[2;15;'), false);
 });
 
+// claude 가 Windows 쪽(/mnt/...)에서 잡히는 상황. 테스트 PC에 /mnt 파일을 만들 수 없으니 command -v 결과만 흉내 낸다.
+function runWithWindowsClaude(args) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'launch-win-'));
+  const home = path.join(root, 'home'); const proj = path.join(root, 'p'); const bin = path.join(root, 'bin');
+  fs.mkdirSync(path.join(home, '.claude'), { recursive: true }); fs.mkdirSync(proj); fs.mkdirSync(bin);
+  const log = path.join(root, 'calls.txt');
+  fs.writeFileSync(path.join(bin, 'claude'), `#!/bin/sh\necho "$*" >> "${log}"\n`, { mode: 0o755 });
+  const r = spawnSync('bash', [SCRIPT, ...args], {
+    cwd: proj, input: '', encoding: 'utf8',
+    env: {
+      PATH: `${bin}:/usr/bin:/bin`, HOME: home, NVM_DIR: path.join(root, 'no-nvm'),
+      'BASH_FUNC_command%%': '() { if [ "$1 $2" = "-v claude" ]; then echo /mnt/c/Users/x/npm/claude; else builtin command "$@"; fi; }',
+    },
+  });
+  return { called: fs.existsSync(log), stdout: r.stdout };
+}
+
+for (const [name, args] of [
+  ['기본 칸', []],
+  ['추가 계정', ['--account', '/tmp/acct-x', '--label', '팀']],
+  ['로그인 창', ['--account', '/tmp/acct-x', '--login']],
+]) {
+  test(`Windows 쪽 claude 만 잡히면 실행하지 않고 안내한다 — ${name} (계정 폴더가 전달되지 않아 엉뚱한 계정으로 열리거나 로그인되므로)`, () => {
+    const { called, stdout } = runWithWindowsClaude(args);
+    assert.equal(called, false, 'claude 를 실행하면 안 된다');
+    assert.ok(stdout.includes('/mnt/c/Users/x/npm/claude'), stdout);
+    assert.ok(stdout.includes('npm install -g @anthropic-ai/claude-code'), stdout);
+  });
+}
+
 test('--login: 대화 대신 로그인 명령(claude auth login --claudeai)을 바로 실행하고, 끝나면 로그인된 계정을 보여 준다', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'launch-login-'));
   const home = path.join(root, 'home'); const proj = path.join(root, 'p'); const bin = path.join(root, 'bin');
