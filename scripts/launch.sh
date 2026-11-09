@@ -15,8 +15,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJ="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 PORT="${PORT:-41730}"
-export PORT                       # 자식 npm start 가 같은 기본 포트를 쓰도록 전달
-[ -n "${PROJECTS_ROOT:-}" ] && export PROJECTS_ROOT  # 단축키가 지정한 스캔 폴더를 npm start 로 전달
+export PORT                       # 자식 서버(node server/index.js)가 같은 기본 포트를 쓰도록 전달
+[ -n "${PROJECTS_ROOT:-}" ] && export PROJECTS_ROOT  # 단축키가 지정한 스캔 폴더를 서버로 전달
 PORT_END=$((PORT + 9))            # 서버는 PORT..PORT+9 범위에서 폴백 바인딩
 LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/project-launcher"
 LOG="${LOG_DIR}/server.log"
@@ -143,7 +143,12 @@ fi
 # 창(wsl.exe 세션)이 닫혀도 살아남도록 setsid 로 새 세션에 완전 분리.
 # (WSL 함정: transient `wsl.exe -- cmd` 세션이 끝나면 nohup 만으론 자식이 함께 죽는다.
 #  setsid 는 제어터미널 없는 새 세션을 만들어 세션 종료 신호로부터 떼어낸다.)
-setsid bash -c 'exec npm start' >>"$LOG" 2>&1 </dev/null 9>&- &
+# npm start 를 거치지 않고 node 로 직접 띄운다 (2026-11-09 다른 사용자 PC 실측):
+#   npm 은 설정을 준비하며 os.networkInterfaces() 로 네트워크 장치 목록을 조회하는데
+#   (@npmcli/config definitions.js), WSL mirrored 네트워킹에서 이 조회(netlink)가 커널 안에서
+#   응답 없이 멈추는 일이 있다 → npm 이 로그 한 줄 없이 영원히 멈춰 "서버 기동 실패"가 났다.
+#   서버 코드는 이 조회를 하지 않아 node 로 직접 띄우면 정상 기동했다.
+setsid bash -c 'exec node server/index.js' >>"$LOG" 2>&1 </dev/null 9>&- &
 disown 2>/dev/null || true
 
 # 헬스체크: 최대 ~12초 동안 우리 대시보드가 (폴백 포함) 뜨길 기다림
@@ -156,6 +161,15 @@ for _ in $(seq 1 24); do
   sleep 0.5
 done
 
+# WSL 네트워크 장치 목록 조회(netlink)가 멈춰 있으면 0. mirrored 네트워킹에서 실측된 고장 상태로,
+# 이때는 npm·claude 등 이 조회를 하는 프로그램이 모두 멈춘다. 고치는 법은 WSL 재시작뿐.
+# 커널 안에서 멈춘 프로세스라 일반 종료 신호가 안 먹어 KILL 로 끊는다.
+netlink_stuck() {
+  command -v ip >/dev/null 2>&1 || return 1
+  timeout -s KILL 3 ip -br addr >/dev/null 2>&1
+  case $? in 124|137) return 0 ;; *) return 1 ;; esac   # 시간 초과 = 124, 상황에 따라 KILL 로 137
+}
+
 # 실패 → 로그 노출 + 창 유지
 echo "────────────────────────────────────────"
 echo "⚠️  서버 기동 실패: ${PORT}~${PORT_END} 포트가 응답하지 않습니다."
@@ -163,6 +177,11 @@ echo "    로그 파일: ${LOG}"
 echo "────────────────────────────────────────"
 tail -n 100 "$LOG" 2>/dev/null || echo "(로그 비어 있음)"
 echo "────────────────────────────────────────"
-echo "수동 재시도:  cd '${PROJ}' && npm start"
+if netlink_stuck; then
+  echo "⚠️  WSL 네트워크가 멈춰 있어요 (네트워크 장치 목록 조회가 응답하지 않음)."
+  echo "    Windows PowerShell 에서  wsl --shutdown  을 실행하고, 10초 뒤 바탕화면 아이콘을 다시 눌러 주세요."
+  echo "────────────────────────────────────────"
+fi
+echo "수동 재시도:  cd '${PROJ}' && node server/index.js"
 exec 9>&-   # 이 창을 열어 둔 채로도 다음 실행이 막히지 않게 잠금을 푼다
 exec bash -i

@@ -112,6 +112,16 @@ if command -v wsl.exe >/dev/null 2>&1; then
 else
   warn "wsl.exe 를 PATH 에서 못 찾음 — distro 자동감지 폴백이 제한될 수 있음."
 fi
+# WSL 네트워크 장치 목록 조회(netlink)가 멈춘 상태인지 — mirrored 네트워킹에서 실측된 고장(2026-11-09).
+# 이때 npm·claude 처럼 이 조회를 하는 프로그램이 출력 없이 영원히 멈춘다. 커널 안 대기라 KILL 로 끊는다.
+if command -v ip >/dev/null 2>&1; then
+  timeout -s KILL 3 ip -br addr >/dev/null 2>&1
+  NL_RC=$?
+  if [ "$NL_RC" -eq 124 ] || [ "$NL_RC" -eq 137 ]; then   # 시간 초과 = 124, 상황에 따라 KILL 로 137
+    bad "WSL 네트워크가 멈춰 있어요 — npm·claude 가 아무 출력 없이 멈춥니다."
+    hint "Windows PowerShell 에서  wsl --shutdown  실행 → 10초 뒤 Ubuntu 를 다시 여세요."
+  fi
+fi
 
 # --- 런처와 동일하게 nvm 로드 (이후 node/claude 점검을 같은 조건에서) --------
 # launch-claude.sh 와 같은 절차: NVM_DIR 소싱 후 기본 노드 활성화.

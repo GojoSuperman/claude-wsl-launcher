@@ -172,6 +172,7 @@ What doctor cannot catch:
 |---|---|
 | Browser says "cannot connect" | The server did not start or auto-stopped. Double-click the shortcut again, or run `npm start`. |
 | `Launch claude` opens nothing, or "spawn cmd.exe ENOENT" | A PATH problem. Start the server from a WSL terminal with `npm start` (login shell). |
+| "Server failed to start" with an empty log, and `npm -v` also hangs | WSL networking (mirrored mode) is stuck. Run `wsl --shutdown` in Windows PowerShell, wait 10 seconds, and launch again. |
 | Port already in use (EADDRINUSE) | A server is already running. Use [Shut down], or `PORT=5000 npm start`. |
 | Cards are missing after an update (you picked a different projects folder before) | The work folder is now fixed to `~/projects`. Find your old folder in **[⬇ Import] → 🐧 WSL / 💻 My PC** and import the projects. The **✨ What's new** window shows the old folder's location at the top. |
 | Shortcut behaves like the old version / does nothing | Recreate it: `bash scripts/install-shortcut.sh`. |

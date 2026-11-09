@@ -172,6 +172,7 @@ doctor 가 잡지 못하는 것:
 |---|---|
 | 브라우저 "연결할 수 없음" | 서버가 안 떴거나 자동 종료됨. 단축키 다시 더블클릭, 또는 `npm start`. |
 | `claude 실행` 을 눌러도 창이 안 뜨거나 "spawn cmd.exe ENOENT" | PATH 문제. WSL 터미널에서 `npm start` 로(로그인 셸) 서버를 띄워 보세요. |
+| "서버 기동 실패" + 로그가 비어 있음, `npm -v` 도 멈춤 | WSL 네트워크(mirrored 모드)가 멈춘 상태. Windows PowerShell 에서 `wsl --shutdown` → 10초 뒤 다시 실행. |
 | 포트 사용 중(EADDRINUSE) | 이미 서버가 떠 있음. [서버 종료] 하거나 `PORT=5000 npm start`. |
 | 업데이트 뒤 카드가 안 보임 (예전에 다른 프로젝트 폴더를 골라 씀) | 작업 폴더가 `~/projects` 로 고정됐습니다. **[⬇ 가져오기] → 🐧 WSL / 💻 내 PC** 탭에서 예전 폴더를 찾아 프로젝트를 가져오세요. **✨ 새 기능** 창 맨 위에 예전 폴더 위치가 나옵니다. |
 | 단축키가 옛 동작을 함 / 안 됨 | `bash scripts/install-shortcut.sh` 로 재생성. |
